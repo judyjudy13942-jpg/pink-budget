@@ -45,7 +45,7 @@
         .tab-btn.active { background: var(--primary); color: white; }
 
         .container { width: 100%; max-width: 420px; padding: 0 15px; box-sizing: border-box; z-index: 1; display: none; }
-        .container.active { display: block; }
+        .container.active { display: block !important; }
 
         .card { 
             background: var(--card-bg); border-radius: var(--radius); padding: 22px; 
@@ -87,15 +87,25 @@
 
         .total-amount { font-size: 45px; font-weight: 900; color: var(--primary); text-align: center; }
 
-        /* 明細標籤 */
+        /* 明細標籤與項目 */
         .record-item { 
             background: white; border-radius: 20px; padding: 18px; margin-top: 12px;
             border-left: 10px solid #eee; display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.02);
         }
         .tag { padding: 4px 8px; border-radius: 8px; font-size: 10px; font-weight: bold; color: white; display: inline-block; margin-right: 4px; }
         .tag-cat { background: #ffd93d; color: #4a313d; }
         .tag-need { background: #b08bb2; }
         .tag-reim { background: #7b61ff; }
+        .tag-settled { background: #2ecc71; }
+
+        /* 結清銷帳按鈕 */
+        .settle-btn {
+            background: #7b61ff; color: white; border: none; border-radius: 10px;
+            padding: 5px 10px; font-size: 12px; font-weight: bold; cursor: pointer;
+            margin-top: 5px; display: inline-block; transition: 0.2s;
+        }
+        .settle-btn:active { transform: scale(0.95); opacity: 0.9; }
     </style>
 </head>
 <body>
@@ -162,7 +172,7 @@
                 <option value="其他">✨ 其他</option>
             </select>
         </div>
-        <div id="record-list"></div>
+        <div id="record-list">正在讀取明細中...</div>
     </div>
 </div>
 
@@ -175,6 +185,7 @@
 
     function initHearts() {
         const container = document.getElementById('heart-container');
+        if (!container) return;
         setInterval(() => {
             const h = document.createElement('div');
             h.className = 'heart'; h.innerText = '❤';
@@ -186,45 +197,101 @@
             setTimeout(() => h.remove(), dur * 1000);
         }, 700);
     }
-    initHearts();
 
     function switchTab(tab) {
         document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(tab + '-page').classList.add('active');
-        if(tab === 'input') document.getElementById('tab1').classList.add('active');
-        else { document.getElementById('tab2').classList.add('active'); renderList(); }
+        
+        if(tab === 'input') {
+            document.getElementById('input-page').classList.add('active');
+            document.getElementById('tab1').classList.add('active');
+        } else {
+            document.getElementById('list-page').classList.add('active');
+            document.getElementById('tab2').classList.add('active');
+            renderList(); // 切換時強制渲染
+        }
     }
 
     function renderList() {
+        const listContainer = document.getElementById('record-list');
+        if (!listContainer) return;
+
         const pFilter = document.getElementById('filter-payer').value;
         const cFilter = document.getElementById('filter-category').value;
-        const [year, month] = document.getElementById('view-month').value.split('-').map(Number);
+        
+        const monthInput = document.getElementById('view-month').value;
+        if(!monthInput) return;
+        const [year, month] = monthInput.split('-').map(Number);
         
         const filtered = localData.filter(i => {
             const d = new Date(i.created_at);
             const mMatch = d.getFullYear() === year && (d.getMonth() + 1) === month;
             const pMatch = (pFilter === "全部" || i.payer.trim() === pFilter);
-            const cMatch = (cFilter === "全部") ? true : (cFilter === "待請款" ? i.is_reimburse : i.category === cFilter);
+            
+            // 過濾待請款
+            let cMatch = false;
+            if (cFilter === "全部") {
+                cMatch = true;
+            } else if (cFilter === "待請款") {
+                cMatch = i.is_reimburse === true;
+            } else {
+                cMatch = i.category === cFilter;
+            }
             return mMatch && pMatch && cMatch;
         });
 
-        document.getElementById('record-list').innerHTML = filtered.length ? filtered.map(i => `
-            <div class="record-item" style="border-left-color: ${i.payer.trim() === '小精靈' ? '#ff6fa9' : '#4da6ff'}">
-                <div style="flex:1;">
+        if (filtered.length === 0) {
+            listContainer.innerHTML = '<div style="text-align:center; padding:30px; color:#999;">這個月還空空如也唷 🐾</div>';
+            return;
+        }
+
+        listContainer.innerHTML = filtered.map(i => {
+            const isElf = i.payer.trim() === '小精靈';
+            const borderColor = isElf ? '#ff6fa9' : '#4da6ff';
+            
+            // 處理請款狀態標籤與結清按鈕
+            let reimburseTag = '';
+            let actionButton = '';
+            if (i.is_reimburse) {
+                if (i.is_settled) {
+                    reimburseTag = '<span class="tag tag-settled">已結清 ✓</span>';
+                } else {
+                    reimburseTag = '<span class="tag tag-reim">待請款</span>';
+                    actionButton = `<br><button class="settle-btn" onclick="handleSettle('${i.id}', '${i.title}')">銷帳 🛠️</button>`;
+                }
+            }
+
+            return `
+            <div class="record-item" style="border-left-color: ${borderColor}">
+                <div style="flex:1; padding-right: 10px;">
                     <div style="margin-bottom: 6px;">
-                        <span class="tag" style="background:${i.payer.trim() === '小精靈' ? '#ff6fa9' : '#4da6ff'}">${i.payer}</span>
+                        <span class="tag" style="background:${borderColor}">${i.payer}</span>
                         <span class="tag tag-cat">${i.category}</span>
                         <span class="tag tag-need">${i.need_type || '需要'}</span>
-                        ${i.is_reimburse ? '<span class="tag tag-reim">待請款</span>' : ''}
+                        ${reimburseTag}
                     </div>
-                    <div style="font-weight:900; font-size:17px;">${i.title}</div>
+                    <div style="font-weight:900; font-size:17px; word-break:break-all;">${i.title}</div>
                     <div style="font-size:11px; color:#999; margin-top:3px;">${new Date(i.created_at).toLocaleDateString()}</div>
+                    ${actionButton}
                 </div>
-                <div style="text-align:right; font-size:20px; font-weight:900; color:${i.amount < 0 ? '#2ecc71' : '#df4d8f'}">
+                <div style="text-align:right; font-size:20px; font-weight:900; color:${i.amount < 0 ? '#2ecc71' : '#df4d8f'}; flex-shrink:0;">
                     $${Math.round(i.amount).toLocaleString()}
                 </div>
-            </div>`).join('') : '<div style="text-align:center; padding:20px; color:#999;">這個月還空空如也唷 🐾</div>';
+            </div>`;
+        }).join('');
+    }
+
+    // 處理結清按鈕功能
+    async function handleSettle(id, title) {
+        if (!confirm(`確定要將「${title}」結清銷帳嗎？`)) return;
+        try {
+            const { error } = await db.from('expenses').update({ is_settled: true }).eq('id', id);
+            if (error) throw error;
+            alert("結清成功！🎉");
+            await refresh();
+        } catch (err) {
+            alert("結清失敗：" + err.message);
+        }
     }
 
     async function handleAddRecord() {
@@ -264,40 +331,60 @@
     }
 
     async function refresh() {
-        const monthVal = document.getElementById('view-month').value;
-        const [year, month] = monthVal.split('-').map(Number);
-        const { data } = await db.from('expenses').select('*').order('created_at', { ascending: false });
+        const monthInput = document.getElementById('view-month').value;
+        if(!monthInput) return;
+        const [year, month] = monthInput.split('-').map(Number);
+        
+        // 抓取全新數據
+        const { data, error } = await db.from('expenses').select('*').order('created_at', { ascending: false });
+        if (error) {
+            document.getElementById('stats-board').innerText = "數據讀取失敗...";
+            return;
+        }
+        
         localData = data || [];
         let s = { elf: 0, water: 0, total: 0, elf_r: 0, water_r: 0 };
+        
         localData.forEach(i => {
             const d = new Date(i.created_at);
+            const amt = Number(i.amount);
+            
+            // 本月統計（不論是否請款皆算入當月總和）
             if (d.getFullYear() === year && (d.getMonth() + 1) === month) {
-                const amt = Number(i.amount);
                 if (i.payer.trim() === "小精靈") s.elf += amt; else s.water += amt;
                 s.total += amt;
             }
+            
+            // 待請款計算（跨月份，只要未結清 is_settled = false 都要累加顯示）
             if (i.is_reimburse && !i.is_settled) {
-                if (i.payer.trim() === "小精靈") s.elf_r += Number(i.amount);
-                else s.water_r += Number(i.amount);
+                if (i.payer.trim() === "小精靈") s.elf_r += amt;
+                else s.water_r += amt;
             }
         });
+
         document.getElementById('stats-board').innerHTML = `
             <div class="total-amount">$${Math.round(s.total).toLocaleString()}</div>
             <div style="display:flex; justify-content: space-around; font-weight:800; font-size:15px; margin: 10px 0;">
-                <span style="color:#ff6fa9">🧚 $${Math.round(s.elf)}</span><span style="color:#4a90e2">🍉 $${Math.round(s.water)}</span>
+                <span style="color:#ff6fa9">🧚 $${Math.round(s.elf).toLocaleString()}</span><span style="color:#4a90e2">🍉 $${Math.round(s.water).toLocaleString()}</span>
             </div>
             <div style="background: #fdf5ff; border: 2.5px solid #e0c3fc; border-radius: 22px; padding: 18px; display:flex; justify-content: space-between; text-align:center;">
-                <div style="flex:1;"><b style="color:#df4d8f">🧚 待請款</b><br><span style="font-size:22px; font-weight:900; color:var(--primary)">$${Math.round(s.elf_r)}</span></div>
-                <div style="flex:1;"><b style="color:#4a90e2">🍉 待請款</b><br><span style="font-size:22px; font-weight:900; color:#4a90e2">$${Math.round(s.water_r)}</span></div>
+                <div style="flex:1;"><b style="color:#df4d8f">🧚 待請款</b><br><span style="font-size:22px; font-weight:900; color:var(--primary)">$${Math.round(s.elf_r).toLocaleString()}</span></div>
+                <div style="flex:1;"><b style="color:#4a90e2">🍉 待請款</b><br><span style="font-size:22px; font-weight:900; color:#4a90e2">$${Math.round(s.water_r).toLocaleString()}</span></div>
             </div>
         `;
+        
+        // 確保數據更新後，立刻渲染當前明細畫面
+        renderList();
     }
 
-    window.onload = () => {
+    window.onload = async () => {
+        initHearts();
         const d = new Date();
         document.getElementById('view-month').value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
         document.getElementById('custom-date').value = d.toISOString().split('T')[0];
-        refresh();
+        
+        // 進入頁面先撈資料
+        await refresh();
     };
 </script>
 </body>
