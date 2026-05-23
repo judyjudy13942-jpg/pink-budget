@@ -359,41 +359,32 @@
         }).join('');
     }
 
-    // ✨ 完美修復：身分反轉銷帳平帳邏輯
-    async function handleSettle(id, title, originalPayer, amount, originalDate) {
-        if (!confirm(`確定要將「${title}」結清銷帳嗎？\n這會自動在對方帳上建立一筆反向金額的銷帳紀錄唷！`)) return;
-        try {
-            // 1. 將原本的待請款項目在資料庫標記為已結清
-            const { error: updateError } = await db.from('expenses').update({ is_settled: true }).eq('id', id);
-            if (updateError) throw updateError;
-            
-            // 2. 身分與金額雙重反轉：對方的名字，且金額乘以 -1 達到扣帳平帳效果
-            const oppositePayer = (originalPayer === "小精靈") ? "西瓜" : "小精靈";
-            const settleAmount = parseFloat(amount) * -1; 
-            const settleTitle = `銷帳: ${title}`;
-            
-            // 3. 寫入反向銷帳日常紀錄
-            const { error: insertError } = await db.from('expenses').insert([{
-                title: settleTitle,
-                amount: settleAmount,
+    // ✨ 究極修復：真・身分反轉取代邏輯（不重複產生銷帳明細，直接轉換換人頂）
+async function handleSettle(id, title, originalPayer, amount) {
+    if (!confirm(`確定要將「${title}」結清嗎？\n這筆款項將會從小精靈與西瓜的待請款中移除，並直接轉換為對方的日常開銷唷！`)) return;
+    try {
+        // 計算出要承接這筆開銷的相反付款人
+        const oppositePayer = (originalPayer === "小精靈") ? "西瓜" : "小精靈";
+        
+        // 直接將原紀錄「轉型」：換人付款、取消待請款狀態、不標記為已結清（因為它已經變成一般日常開銷了）
+        const { error: updateError } = await db.from('expenses')
+            .update({ 
                 payer: oppositePayer,
-                category: "其他",
-                need_type: "需要",
                 is_reimburse: false,
-                is_settled: false,
-                created_at: new Date().toISOString() // 採結清當下的時間寫入，或可用 originalDate 
-            }]);
-            if (insertError) throw insertError;
-
-            alert("結清並反轉銷帳成功！🎉");
+                is_settled: false
+            })
+            .eq('id', id);
             
-            // 4. 🔥 關鍵修復：重新從資料庫抓取最新資料並重新渲染畫面！
-            await refresh();
-        } catch (err) {
-            alert("結清失敗：" + err.message);
-        }
-    }
+        if (updateError) throw updateError;
 
+        alert("結清並身分轉移成功！帳目已歸位 🎉");
+        
+        // 重新從資料庫抓取最新資料，徹底刷新畫面
+        await refresh();
+    } catch (err) {
+        alert("結清失敗：" + err.message);
+    }
+}
     async function handleAddRecord() {
         const btn = document.getElementById('addBtn');
         const amtVal = document.getElementById('amount').value;
