@@ -10,14 +10,14 @@
         :root {
             --primary: #ff6fa9;
             --secondary: #df4d8f;
-            --card-bg: rgba(255, 255, 255, 0.88); /* 稍微調透明，讓精美底圖透出來 */
+            --card-bg: rgba(255, 255, 255, 0.88);
             --radius: 24px;
         }
 
         body {
             margin: 0; padding: 0;
-            /* 套用你提供的超美粉紅底圖 */
-            background: url('底圖.jpg') no-repeat center center fixed;
+            /* 為了防止 404 錯誤，若找不到底圖時會自動以粉紅漸層代替 */
+            background: url('底圖.jpg') no-repeat center center fixed, linear-gradient(135deg, #fff5f8 0%, #ffeef4 100%);
             background-size: cover;
             font-family: -apple-system, "Noto Sans TC", sans-serif;
             color: #4a313d; overflow-x: hidden;
@@ -67,7 +67,7 @@
             color: #4a313d; outline: none; -webkit-appearance: none;
         }
 
-        /* 全新改版：直覺好看的並排選擇鈕 (替代原本擠壓跑版的樣式) */
+        /* 雙按鈕選擇鈕樣式 */
         .selector-row {
             display: flex; gap: 8px; background: #f8f0f2; padding: 4px; border-radius: 16px; height: 50px; box-sizing: border-box;
         }
@@ -75,15 +75,15 @@
             flex: 1; border: none; background: transparent; border-radius: 12px; font-weight: 800; font-size: 14px; color: #a38d97; cursor: pointer; transition: all 0.2s ease;
         }
         
-        /* 付款人點選狀態 */
+        /* 付款人激活顏色 */
         .selector-btn.active-elf { background: var(--primary); color: white; box-shadow: 0 4px 8px rgba(255, 111, 169, 0.25); }
         .selector-btn.active-water { background: #4a90e2; color: white; box-shadow: 0 4px 8px rgba(74, 144, 226, 0.25); }
         
-        /* 類型點選狀態 */
+        /* 類型激活顏色 */
         .selector-btn.active-need { background: #b08bb2; color: white; box-shadow: 0 4px 8px rgba(176, 139, 178, 0.25); }
         .selector-btn.active-want { background: #ffd93d; color: #4a313d; box-shadow: 0 4px 8px rgba(255, 217, 61, 0.25); }
 
-        /* 粉紅勾勾框 */
+        /* 待請款虛線框 */
         .checkbox-row { 
             display: flex; align-items: center; background: rgba(255, 249, 251, 0.8);
             padding: 16px; border-radius: 18px; margin-top: 20px; 
@@ -109,7 +109,7 @@
 
         .total-amount { font-size: 42px; font-weight: 900; color: var(--primary); text-align: center; }
 
-        /* 明細項目 */
+        /* 明細卡片項目 */
         .record-item { 
             background: rgba(255, 255, 255, 0.95); border-radius: 18px; padding: 16px; margin-top: 12px;
             border-left: 8px solid #eee; display: flex; justify-content: space-between; align-items: center;
@@ -119,9 +119,8 @@
         .tag-cat { background: #ffd93d; color: #4a313d; }
         .tag-need { background: #b08bb2; }
         .tag-reim { background: #7b61ff; }
-        .tag-settled { background: #2ecc71; }
 
-        /* 銷帳按鈕樣式 */
+        /* 銷帳按鈕 */
         .settle-btn {
             background: #7b61ff; color: white; border: none; border-radius: 8px;
             padding: 6px 12px; font-size: 12px; font-weight: bold; cursor: pointer;
@@ -173,7 +172,8 @@
                     <option value="住宿">🏨 住宿</option>
                     <option value="交通">🚗 交通</option>
                     <option value="購物">🛍️ 購物</option>
-                    <option value="👗 治裝">👗 治裝</option> <option value="電話及會員">📱 電話及會員</option>
+                    <option value="👗 治裝">👗 治裝</option>
+                    <option value="電話及會員">📱 電話及會員</option>
                     <option value="醫療">🏥 醫療</option>
                     <option value="保養美體">💆 保養美體</option>
                     <option value="儲值">💵 儲值</option>
@@ -229,7 +229,6 @@
     const GAS_URL = "https://script.google.com/macros/s/AKfycbxi8QHWjSitWQJUVTLntehHUYbm-QwyNp6c296bvCDxJIoc_k-Pq-Cu8R21JAiJx26n/exec";
     const db = window.supabase.createClient(SB_URL, SB_KEY);
     
-    // 控制變數
     let currentPayer = "小精靈";
     let currentNeedType = "需要";
     let localData = [];
@@ -249,7 +248,6 @@
         }, 700);
     }
 
-    // 變更付款人按鈕樣式與狀態
     function setPayer(payer) {
         currentPayer = payer;
         const btnElf = document.getElementById('btn-elf');
@@ -263,7 +261,6 @@
         }
     }
 
-    // 變更類型按鈕樣式與狀態
     function setNeedType(type) {
         currentNeedType = type;
         const btnNeed = document.getElementById('btn-need');
@@ -323,6 +320,7 @@
             return;
         }
 
+        // 🔥 🔥 🔥 關鍵修正處：在字串拼接傳參時，完美處理單引號轉義，絕不引發 SyntaxError
         listContainer.innerHTML = filtered.map(i => {
             const isElf = i.payer.trim() === '小精靈';
             const borderColor = isElf ? '#ff6fa9' : '#4a90e2';
@@ -331,11 +329,12 @@
             let actionButton = '';
             if (i.is_reimburse) {
                 if (i.is_settled) {
-                    reimburseTag = '<span class="tag tag-settled">已結清 ✓</span>';
+                    reimburseTag = '<span class="tag" style="background:#2ecc71;">已結清 ✓</span>';
                 } else {
                     reimburseTag = '<span class="tag tag-reim">待請款</span>';
-                    // 點擊銷帳會傳入完整資訊以利反轉
-                    actionButton = `<br><button class="settle-btn" onclick="handleSettle('${i.id}', '${i.title}', '${i.payer.trim()}', ${i.amount}, '${i.created_at}')">銷帳 🛠️</button>`;
+                    const safeTitle = i.title.replace(/'/g, "\\'");
+                    const safePayer = i.payer.trim().replace(/'/g, "\\'");
+                    actionButton = `<br><button class="settle-btn" onclick="handleSettle('${i.id}', '${safeTitle}', '${safePayer}', ${i.amount})">銷帳 🛠️</button>`;
                 }
             }
 
@@ -359,32 +358,29 @@
         }).join('');
     }
 
-    // ✨ 究極修復：真・身分反轉取代邏輯（不重複產生銷帳明細，直接轉換換人頂）
-async function handleSettle(id, title, originalPayer, amount) {
-    if (!confirm(`確定要將「${title}」結清嗎？\n這筆款項將會從小精靈與西瓜的待請款中移除，並直接轉換為對方的日常開銷唷！`)) return;
-    try {
-        // 計算出要承接這筆開銷的相反付款人
-        const oppositePayer = (originalPayer === "小精靈") ? "西瓜" : "小精靈";
-        
-        // 直接將原紀錄「轉型」：換人付款、取消待請款狀態、不標記為已結清（因為它已經變成一般日常開銷了）
-        const { error: updateError } = await db.from('expenses')
-            .update({ 
-                payer: oppositePayer,
-                is_reimburse: false,
-                is_settled: false
-            })
-            .eq('id', id);
+    // ✨ 真・身分反轉取代邏輯：原本記錄直接從小精靈的請款消失，原地變身轉移到西瓜的日常普通帳目上
+    async function handleSettle(id, title, originalPayer, amount) {
+        if (!confirm(`確定要將「${title}」結清嗎？\n這筆款項將會從小精靈與西瓜的待請款中移除，並直接轉換為對方的日常開銷唷！`)) return;
+        try {
+            const oppositePayer = (originalPayer === "小精靈") ? "西瓜" : "小精靈";
             
-        if (updateError) throw updateError;
+            const { error: updateError } = await db.from('expenses')
+                .update({ 
+                    payer: oppositePayer,
+                    is_reimburse: false,
+                    is_settled: false
+                })
+                .eq('id', id);
+                
+            if (updateError) throw updateError;
 
-        alert("結清並身分轉移成功！帳目已歸位 🎉");
-        
-        // 重新從資料庫抓取最新資料，徹底刷新畫面
-        await refresh();
-    } catch (err) {
-        alert("結清失敗：" + err.message);
+            alert("結清並身分轉移成功！帳目已歸位 🎉");
+            await refresh();
+        } catch (err) {
+            alert("結清失敗：" + err.message);
+        }
     }
-}
+
     async function handleAddRecord() {
         const btn = document.getElementById('addBtn');
         const amtVal = document.getElementById('amount').value;
@@ -426,7 +422,6 @@ async function handleSettle(id, title, originalPayer, amount) {
         if(!monthInput) return;
         const [year, month] = monthInput.split('-').map(Number);
         
-        // 重新撈取完整數據
         const { data, error } = await db.from('expenses').select('*').order('created_at', { ascending: false });
         if (error) {
             document.getElementById('stats-board').innerText = "數據讀取失敗...";
@@ -462,7 +457,6 @@ async function handleSettle(id, title, originalPayer, amount) {
             </div>
         `;
         
-        // 重新渲染明細清單
         renderList();
     }
 
