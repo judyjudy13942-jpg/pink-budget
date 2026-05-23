@@ -10,13 +10,15 @@
         :root {
             --primary: #ff6fa9;
             --secondary: #df4d8f;
-            --bg: #fff5f8;
-            --card-bg: rgba(255, 255, 255, 0.98);
-            --radius: 28px;
+            --card-bg: rgba(255, 255, 255, 0.88); /* 稍微調透明，讓精美底圖透出來 */
+            --radius: 24px;
         }
 
         body {
-            margin: 0; padding: 0; background: var(--bg);
+            margin: 0; padding: 0;
+            /* 套用你提供的超美粉紅底圖 */
+            background: url('底圖.jpg') no-repeat center center fixed;
+            background-size: cover;
             font-family: -apple-system, "Noto Sans TC", sans-serif;
             color: #4a313d; overflow-x: hidden;
             display: flex; flex-direction: column; align-items: center;
@@ -24,110 +26,107 @@
 
         /* 背景愛心 */
         #heart-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
-        .heart { position: absolute; bottom: -50px; animation: floatUp linear infinite; color: #ffb6d3; }
+        .heart { position: absolute; bottom: -50px; animation: floatUp linear infinite; color: #ffb6d3; opacity: 0.6; }
         @keyframes floatUp {
             0% { transform: translateY(0) rotate(0deg) scale(0.5); opacity: 0; }
-            20% { opacity: 0.8; }
+            20% { opacity: 0.6; }
             100% { transform: translateY(-110vh) rotate(360deg) scale(1.2); opacity: 0; }
         }
 
         /* 導覽 Tab */
         .tabs { 
             position: sticky; top: 15px; z-index: 10; width: 90%; max-width: 380px;
-            display: flex; background: white; padding: 6px; 
+            display: flex; background: rgba(255, 255, 255, 0.95); padding: 6px; 
             border-radius: 40px; box-shadow: 0 8px 20px rgba(255, 111, 169, 0.15); margin: 15px 0;
+            backdrop-filter: blur(5px);
         }
         .tab-btn { 
             flex: 1; text-align: center; font-weight: bold; color: #a38d97; cursor: pointer; 
             border: none; background: none; font-size: 15px; padding: 12px 0;
             border-radius: 30px; transition: 0.3s;
         }
-        .tab-btn.active { background: var(--primary); color: white; }
+        .tab-btn.active { background: var(--primary); color: white; box-shadow: 0 4px 10px rgba(255, 111, 169, 0.3); }
 
         .container { width: 100%; max-width: 420px; padding: 0 15px; box-sizing: border-box; z-index: 1; display: none; }
         .container.active { display: block !important; }
 
         .card { 
             background: var(--card-bg); border-radius: var(--radius); padding: 22px; 
-            margin-bottom: 20px; box-shadow: 0 12px 35px rgba(255, 182, 193, 0.25);
-            border: 1px solid white; box-sizing: border-box; width: 100%;
+            margin-bottom: 20px; box-shadow: 0 12px 35px rgba(255, 182, 193, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.6); box-sizing: border-box; width: 100%;
+            backdrop-filter: blur(8px);
         }
 
         /* 輸入框一致化 */
         .input-group { margin-top: 15px; width: 100%; box-sizing: border-box; }
         .input-group label { display: block; margin-bottom: 6px; font-weight: bold; font-size: 14px; color: #7a5e6c; }
         input, select { 
-            width: 100% !important; height: 52px; border-radius: 18px;
+            width: 100% !important; height: 50px; border-radius: 16px;
             border: 2px solid #f8f0f2; font-size: 16px; background: #fff;
             padding: 0 15px !important; box-sizing: border-box !important;
             color: #4a313d; outline: none; -webkit-appearance: none;
         }
 
-        /* 漂亮勾選切換鈕 (付款人與類型) */
-        .toggle-box {
-            display: flex; background: #f8f0f2; border-radius: 18px; padding: 4px; height: 52px; box-sizing: border-box; align-items: center; position: relative; cursor: pointer; user-select: none;
+        /* 全新改版：直覺好看的並排選擇鈕 (替代原本擠壓跑版的樣式) */
+        .selector-row {
+            display: flex; gap: 8px; background: #f8f0f2; padding: 4px; border-radius: 16px; height: 50px; box-sizing: border-box;
         }
-        .toggle-item {
-            flex: 1; text-align: center; font-weight: 800; font-size: 16px; z-index: 2; transition: color 0.3s ease; color: #a38d97; line-height: 44px;
-        }
-        .toggle-slider {
-            position: absolute; top: 4px; left: 4px; width: calc(50% - 4px); height: 44px; border-radius: 14px; z-index: 1; transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+        .selector-btn {
+            flex: 1; border: none; background: transparent; border-radius: 12px; font-weight: 800; font-size: 14px; color: #a38d97; cursor: pointer; transition: all 0.2s ease;
         }
         
-        /* 付款人樣式切換 */
-        .payer-elf .toggle-slider { background: var(--primary); box-shadow: 0 4px 10px rgba(255, 111, 169, 0.3); }
-        .payer-elf .toggle-item.elf { color: white; }
-        .payer-water .toggle-slider { background: #4a90e2; box-shadow: 0 4px 10px rgba(74, 144, 226, 0.3); }
-        .payer-water .toggle-item.water { color: white; }
+        /* 付款人點選狀態 */
+        .selector-btn.active-elf { background: var(--primary); color: white; box-shadow: 0 4px 8px rgba(255, 111, 169, 0.25); }
+        .selector-btn.active-water { background: #4a90e2; color: white; box-shadow: 0 4px 8px rgba(74, 144, 226, 0.25); }
+        
+        /* 類型點選狀態 */
+        .selector-btn.active-need { background: #b08bb2; color: white; box-shadow: 0 4px 8px rgba(176, 139, 178, 0.25); }
+        .selector-btn.active-want { background: #ffd93d; color: #4a313d; box-shadow: 0 4px 8px rgba(255, 217, 61, 0.25); }
 
-        /* 類型樣式切換 */
-        .type-need .toggle-slider { background: #b08bb2; box-shadow: 0 4px 10px rgba(176, 139, 178, 0.3); }
-        .type-need .toggle-item.need { color: white; }
-        .type-want .toggle-slider { background: #ffd93d; box-shadow: 0 4px 10px rgba(255, 217, 61, 0.3); }
-        .type-want .toggle-item.want { color: #4a313d; }
-
-        /* 粉紅勾勾 */
+        /* 粉紅勾勾框 */
         .checkbox-row { 
-            display: flex; align-items: center; background: #fff9fb;
-            padding: 16px; border-radius: 20px; margin-top: 20px; 
+            display: flex; align-items: center; background: rgba(255, 249, 251, 0.8);
+            padding: 16px; border-radius: 18px; margin-top: 20px; 
             border: 2px dashed #f3a9c6; cursor: pointer;
         }
         #is_reimburse { 
-            width: 28px !important; height: 28px !important; appearance: none; -webkit-appearance: none;
-            border: 2px solid #f3a9c6; border-radius: 10px; background: white; 
+            width: 24px !important; height: 24px !important; appearance: none; -webkit-appearance: none;
+            border: 2px solid #f3a9c6; border-radius: 8px; background: white; 
             margin-right: 12px !important; position: relative; flex-shrink: 0;
         }
         #is_reimburse:checked { background: var(--primary); border-color: var(--primary); }
         #is_reimburse:checked::after { 
             content: '✓'; color: white; position: absolute; left: 50%; top: 50%; 
-            transform: translate(-50%, -50%); font-weight: 900; font-size: 18px;
+            transform: translate(-50%, -50%); font-weight: 900; font-size: 16px;
         }
 
         button#addBtn { 
-            width: 100%; height: 62px; border: none; border-radius: 22px;
+            width: 100%; height: 58px; border: none; border-radius: 18px;
             background: linear-gradient(135deg, #ff85b9 0%, #df4d8f 100%);
-            color: white; font-weight: 800; font-size: 20px; cursor: pointer; margin-top: 25px;
+            color: white; font-weight: 800; font-size: 18px; cursor: pointer; margin-top: 25px;
+            box-shadow: 0 6px 15px rgba(223, 77, 143, 0.3);
         }
 
-        .total-amount { font-size: 45px; font-weight: 900; color: var(--primary); text-align: center; }
+        .total-amount { font-size: 42px; font-weight: 900; color: var(--primary); text-align: center; }
 
-        /* 明細標籤與項目 */
+        /* 明細項目 */
         .record-item { 
-            background: white; border-radius: 20px; padding: 18px; margin-top: 12px;
-            border-left: 10px solid #eee; display: flex; justify-content: space-between; align-items: center;
+            background: rgba(255, 255, 255, 0.95); border-radius: 18px; padding: 16px; margin-top: 12px;
+            border-left: 8px solid #eee; display: flex; justify-content: space-between; align-items: center;
             box-shadow: 0 4px 10px rgba(0,0,0,0.02);
         }
-        .tag { padding: 4px 8px; border-radius: 8px; font-size: 10px; font-weight: bold; color: white; display: inline-block; margin-right: 4px; }
+        .tag { padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; color: white; display: inline-block; margin-right: 4px; }
         .tag-cat { background: #ffd93d; color: #4a313d; }
         .tag-need { background: #b08bb2; }
         .tag-reim { background: #7b61ff; }
         .tag-settled { background: #2ecc71; }
 
-        /* 結清銷帳按鈕 */
+        /* 銷帳按鈕樣式 */
         .settle-btn {
-            background: #7b61ff; color: white; border: none; border-radius: 10px;
-            padding: 5px 10px; font-size: 12px; font-weight: bold; cursor: pointer;
+            background: #7b61ff; color: white; border: none; border-radius: 8px;
+            padding: 6px 12px; font-size: 12px; font-weight: bold; cursor: pointer;
             margin-top: 8px; display: inline-block; transition: 0.2s;
+            box-shadow: 0 3px 6px rgba(123, 97, 255, 0.2);
         }
         .settle-btn:active { transform: scale(0.95); opacity: 0.9; }
     </style>
@@ -153,15 +152,14 @@
         <div class="input-group"><label>日期</label><input id="custom-date" type="date"></div>
         
         <div class="row" style="display:flex; gap:10px;">
-            <div class="input-group" style="flex:1;">
+            <div class="input-group" style="flex:1.2;">
                 <label>付款人</label>
-                <div id="payer-toggle" class="toggle-box payer-elf" onclick="togglePayer()">
-                    <div class="toggle-slider"></div>
-                    <div class="toggle-item elf">🧚 精靈</div>
-                    <div class="toggle-item water">🍉 西瓜</div>
+                <div class="selector-row">
+                    <button type="button" id="btn-elf" class="selector-btn active-elf" onclick="setPayer('小精靈')">🧚 精靈</button>
+                    <button type="button" id="btn-water" class="selector-btn" onclick="setPayer('西瓜')">🍉 西瓜</button>
                 </div>
             </div>
-            <div class="input-group" style="flex:2;"><label>項目</label><input id="title" type="text" placeholder="買了什麼？"></div>
+            <div class="input-group" style="flex:1.8;"><label>項目</label><input id="title" type="text" placeholder="買了什麼？"></div>
         </div>
 
         <div class="input-group"><label>金額 (退款打負數 - )</label><input id="amount" type="text" inputmode="hyphenated-decimal" placeholder="0"></div>
@@ -170,19 +168,26 @@
             <div class="input-group" style="flex:1;">
                 <label>分類</label>
                 <select id="category">
-                    <option value="餐飲">🍔 餐飲</option><option value="餐費預付">💰 餐費預付</option><option value="住宿">🏨 住宿</option>
-                    <option value="交通">🚗 交通</option><option value="購物">🛍️ 購物</option><option value="👗 治裝">👗 治裝</option><option value="電話及會員">📱 電話及會員</option>
-                    <option value="醫療">🏥 醫療</option><option value="保養美體">💆 保養美體</option><option value="儲值">💵 儲值</option>
-                    <option value="罰款">🚔 罰款</option><option value="狗勾">🐶 狗勾</option><option value="爸爸贊助">🎁 爸爸贊助</option>
+                    <option value="餐飲">🍔 餐飲</option>
+                    <option value="餐費預付">💰 餐費預付</option>
+                    <option value="住宿">🏨 住宿</option>
+                    <option value="交通">🚗 交通</option>
+                    <option value="購物">🛍️ 購物</option>
+                    <option value="👗 治裝">👗 治裝</option> <option value="電話及會員">📱 電話及會員</option>
+                    <option value="醫療">🏥 醫療</option>
+                    <option value="保養美體">💆 保養美體</option>
+                    <option value="儲值">💵 儲值</option>
+                    <option value="罰款">🚔 罰款</option>
+                    <option value="狗勾">🐶 狗勾</option>
+                    <option value="爸爸贊助">🎁 爸爸贊助</option>
                     <option value="其他">✨ 其他</option>
                 </select>
             </div>
             <div class="input-group" style="flex:1;">
                 <label>類型</label>
-                <div id="type-toggle" class="toggle-box type-need" onclick="toggleType()">
-                    <div class="toggle-slider"></div>
-                    <div class="toggle-item need">✅ 需要</div>
-                    <div class="toggle-item want">🎁 想要</div>
+                <div class="selector-row">
+                    <button type="button" id="btn-need" class="selector-btn active-need" onclick="setNeedType('需要')">✅ 需要</button>
+                    <button type="button" id="btn-want" class="selector-btn" onclick="setNeedType('想要')">🎁 想要</button>
                 </div>
             </div>
         </div>
@@ -224,7 +229,7 @@
     const GAS_URL = "https://script.google.com/macros/s/AKfycbxi8QHWjSitWQJUVTLntehHUYbm-QwyNp6c296bvCDxJIoc_k-Pq-Cu8R21JAiJx26n/exec";
     const db = window.supabase.createClient(SB_URL, SB_KEY);
     
-    // 用於記錄切換按鈕狀態的全域變數
+    // 控制變數
     let currentPayer = "小精靈";
     let currentNeedType = "需要";
     let localData = [];
@@ -244,27 +249,31 @@
         }, 700);
     }
 
-    // 處理付款人勾選切換
-    function togglePayer() {
-        const box = document.getElementById('payer-toggle');
-        if (currentPayer === "小精靈") {
-            currentPayer = "西瓜";
-            box.className = "toggle-box payer-water";
+    // 變更付款人按鈕樣式與狀態
+    function setPayer(payer) {
+        currentPayer = payer;
+        const btnElf = document.getElementById('btn-elf');
+        const btnWater = document.getElementById('btn-water');
+        if(payer === '小精靈') {
+            btnElf.className = "selector-btn active-elf";
+            btnWater.className = "selector-btn";
         } else {
-            currentPayer = "小精靈";
-            box.className = "toggle-box payer-elf";
+            btnElf.className = "selector-btn";
+            btnWater.className = "selector-btn active-water";
         }
     }
 
-    // 處理類型勾選切換
-    function toggleType() {
-        const box = document.getElementById('type-toggle');
-        if (currentNeedType === "需要") {
-            currentNeedType = "想要";
-            box.className = "toggle-box type-want";
+    // 變更類型按鈕樣式與狀態
+    function setNeedType(type) {
+        currentNeedType = type;
+        const btnNeed = document.getElementById('btn-need');
+        const btnWant = document.getElementById('btn-want');
+        if(type === '需要') {
+            btnNeed.className = "selector-btn active-need";
+            btnWant.className = "selector-btn";
         } else {
-            currentNeedType = "需要";
-            box.className = "toggle-box type-need";
+            btnNeed.className = "selector-btn";
+            btnWant.className = "selector-btn active-want";
         }
     }
 
@@ -325,7 +334,7 @@
                     reimburseTag = '<span class="tag tag-settled">已結清 ✓</span>';
                 } else {
                     reimburseTag = '<span class="tag tag-reim">待請款</span>';
-                    // 點擊銷帳會同步啟動「身分反轉結清」機制
+                    // 確實渲染銷帳與身分反轉按鈕
                     actionButton = `<br><button class="settle-btn" onclick="handleSettle('${i.id}', '${i.title}', '${i.payer.trim()}', ${i.amount}, '${i.created_at}')">銷帳 🛠️</button>`;
                 }
             }
@@ -339,30 +348,30 @@
                         <span class="tag tag-need">${i.need_type || '需要'}</span>
                         ${reimburseTag}
                     </div>
-                    <div style="font-weight:900; font-size:17px; word-break:break-all;">${i.title}</div>
+                    <div style="font-weight:900; font-size:16px; word-break:break-all;">${i.title}</div>
                     <div style="font-size:11px; color:#999; margin-top:3px;">${new Date(i.created_at).toLocaleDateString()}</div>
                     ${actionButton}
                 </div>
-                <div style="text-align:right; font-size:20px; font-weight:900; color:${i.amount < 0 ? '#2ecc71' : '#df4d8f'}; flex-shrink:0;">
+                <div style="text-align:right; font-size:18px; font-weight:900; color:${i.amount < 0 ? '#2ecc71' : '#df4d8f'}; flex-shrink:0;">
                     $${Math.round(i.amount).toLocaleString()}
                 </div>
             </div>`;
         }).join('');
     }
 
-    // 處理結清功能 (包含身分反轉平帳)
+    // 身分反轉銷帳平帳邏輯
     async function handleSettle(id, title, originalPayer, amount, originalDate) {
-        if (!confirm(`確定要將「${title}」結清銷帳嗎？\n這將會自動在對方帳上建立一筆反向的結清日常紀錄唷！`)) return;
+        if (!confirm(`確定要將「${title}」結清銷帳嗎？\n這會自動在對方帳上建立一筆反向的銷帳紀錄唷！`)) return;
         try {
             // 1. 將原本的待請款項目標記為已結清
             const { error: updateError } = await db.from('expenses').update({ is_settled: true }).eq('id', id);
             if (updateError) throw updateError;
             
-            // 2. 身分反轉：計算出誰是接收這筆帳的人
+            // 2. 身分反轉：計算出相反的付款人
             const oppositePayer = (originalPayer === "小精靈") ? "西瓜" : "小精靈";
             const settleTitle = `銷帳: ${title}`;
             
-            // 3. 自動插入一筆反向結清普通帳目
+            // 3. 自動插入一筆反向銷帳日常紀錄
             const { error: insertError } = await db.from('expenses').insert([{
                 title: settleTitle,
                 amount: amount,
@@ -371,7 +380,7 @@
                 need_type: "需要",
                 is_reimburse: false,
                 is_settled: false,
-                created_at: originalDate // 保持跟原本同時間以方便對帳
+                created_at: originalDate
             }]);
             if (insertError) throw insertError;
 
@@ -390,9 +399,9 @@
         try {
             const amount = parseFloat(amtVal);
             const title = document.getElementById('title').value || "日常開銷";
-            const payer = currentPayer; // 讀取自勾選切換欄位
+            const payer = currentPayer;
             const category = document.getElementById('category').value;
-            const needType = currentNeedType; // 讀取自勾選切換欄位
+            const needType = currentNeedType;
             const isReimburse = document.getElementById('is_reimburse').checked;
             const customDate = document.getElementById('custom-date').value;
             const finalDate = `${customDate}T${new Date().toTimeString().split(' ')[0]}.000Z`;
@@ -452,7 +461,7 @@
             <div style="display:flex; justify-content: space-around; font-weight:800; font-size:15px; margin: 10px 0;">
                 <span style="color:#ff6fa9">🧚 $${Math.round(s.elf).toLocaleString()}</span><span style="color:#4a90e2">🍉 $${Math.round(s.water).toLocaleString()}</span>
             </div>
-            <div style="background: #fdf5ff; border: 2.5px solid #e0c3fc; border-radius: 22px; padding: 18px; display:flex; justify-content: space-between; text-align:center;">
+            <div style="background: rgba(253, 245, 255, 0.8); border: 2.5px solid #e0c3fc; border-radius: 22px; padding: 18px; display:flex; justify-content: space-between; text-align:center;">
                 <div style="flex:1;"><b style="color:#df4d8f">🧚 待請款</b><br><span style="font-size:22px; font-weight:900; color:var(--primary)">$${Math.round(s.elf_r).toLocaleString()}</span></div>
                 <div style="flex:1;"><b style="color:#4a90e2">🍉 待請款</b><br><span style="font-size:22px; font-weight:900; color:#4a90e2">$${Math.round(s.water_r).toLocaleString()}</span></div>
             </div>
