@@ -55,12 +55,36 @@
 
         /* 輸入框一致化 */
         .input-group { margin-top: 15px; width: 100%; box-sizing: border-box; }
+        .input-group label { display: block; margin-bottom: 6px; font-weight: bold; font-size: 14px; color: #7a5e6c; }
         input, select { 
             width: 100% !important; height: 52px; border-radius: 18px;
             border: 2px solid #f8f0f2; font-size: 16px; background: #fff;
             padding: 0 15px !important; box-sizing: border-box !important;
             color: #4a313d; outline: none; -webkit-appearance: none;
         }
+
+        /* 漂亮勾選切換鈕 (付款人與類型) */
+        .toggle-box {
+            display: flex; background: #f8f0f2; border-radius: 18px; padding: 4px; height: 52px; box-sizing: border-box; align-items: center; position: relative; cursor: pointer; user-select: none;
+        }
+        .toggle-item {
+            flex: 1; text-align: center; font-weight: 800; font-size: 16px; z-index: 2; transition: color 0.3s ease; color: #a38d97; line-height: 44px;
+        }
+        .toggle-slider {
+            position: absolute; top: 4px; left: 4px; width: calc(50% - 4px); height: 44px; border-radius: 14px; z-index: 1; transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        
+        /* 付款人樣式切換 */
+        .payer-elf .toggle-slider { background: var(--primary); box-shadow: 0 4px 10px rgba(255, 111, 169, 0.3); }
+        .payer-elf .toggle-item.elf { color: white; }
+        .payer-water .toggle-slider { background: #4a90e2; box-shadow: 0 4px 10px rgba(74, 144, 226, 0.3); }
+        .payer-water .toggle-item.water { color: white; }
+
+        /* 類型樣式切換 */
+        .type-need .toggle-slider { background: #b08bb2; box-shadow: 0 4px 10px rgba(176, 139, 178, 0.3); }
+        .type-need .toggle-item.need { color: white; }
+        .type-want .toggle-slider { background: #ffd93d; box-shadow: 0 4px 10px rgba(255, 217, 61, 0.3); }
+        .type-want .toggle-item.want { color: #4a313d; }
 
         /* 粉紅勾勾 */
         .checkbox-row { 
@@ -103,7 +127,7 @@
         .settle-btn {
             background: #7b61ff; color: white; border: none; border-radius: 10px;
             padding: 5px 10px; font-size: 12px; font-weight: bold; cursor: pointer;
-            margin-top: 5px; display: inline-block; transition: 0.2s;
+            margin-top: 8px; display: inline-block; transition: 0.2s;
         }
         .settle-btn:active { transform: scale(0.95); opacity: 0.9; }
     </style>
@@ -127,24 +151,42 @@
     <div class="card">
         <h2>💖 記下一筆浪漫</h2>
         <div class="input-group"><label>日期</label><input id="custom-date" type="date"></div>
+        
         <div class="row" style="display:flex; gap:10px;">
-            <div class="input-group" style="flex:1;"><label>付款人</label><select id="payer"><option value="小精靈">🧚 小精靈</option><option value="西瓜">🍉 西瓜</option></select></div>
+            <div class="input-group" style="flex:1;">
+                <label>付款人</label>
+                <div id="payer-toggle" class="toggle-box payer-elf" onclick="togglePayer()">
+                    <div class="toggle-slider"></div>
+                    <div class="toggle-item elf">🧚 精靈</div>
+                    <div class="toggle-item water">🍉 西瓜</div>
+                </div>
+            </div>
             <div class="input-group" style="flex:2;"><label>項目</label><input id="title" type="text" placeholder="買了什麼？"></div>
         </div>
+
         <div class="input-group"><label>金額 (退款打負數 - )</label><input id="amount" type="text" inputmode="hyphenated-decimal" placeholder="0"></div>
+        
         <div class="row" style="display:flex; gap:10px;">
             <div class="input-group" style="flex:1;">
                 <label>分類</label>
                 <select id="category">
                     <option value="餐飲">🍔 餐飲</option><option value="餐費預付">💰 餐費預付</option><option value="住宿">🏨 住宿</option>
-                    <option value="交通">🚗 交通</option><option value="購物">🛍️ 購物</option><option value="電話及會員">📱 電話及會員</option>
+                    <option value="交通">🚗 交通</option><option value="購物">🛍️ 購物</option><option value="👗 治裝">👗 治裝</option><option value="電話及會員">📱 電話及會員</option>
                     <option value="醫療">🏥 醫療</option><option value="保養美體">💆 保養美體</option><option value="儲值">💵 儲值</option>
                     <option value="罰款">🚔 罰款</option><option value="狗勾">🐶 狗勾</option><option value="爸爸贊助">🎁 爸爸贊助</option>
                     <option value="其他">✨ 其他</option>
                 </select>
             </div>
-            <div class="input-group" style="flex:1;"><label>類型</label><select id="need_type"><option value="需要">✅ 需要</option><option value="想要">🎁 想要</option></select></div>
+            <div class="input-group" style="flex:1;">
+                <label>類型</label>
+                <div id="type-toggle" class="toggle-box type-need" onclick="toggleType()">
+                    <div class="toggle-slider"></div>
+                    <div class="toggle-item need">✅ 需要</div>
+                    <div class="toggle-item want">🎁 想要</div>
+                </div>
+            </div>
         </div>
+
         <div class="checkbox-row" onclick="document.getElementById('is_reimburse').click();">
             <input type="checkbox" id="is_reimburse" onclick="event.stopPropagation();">
             <span style="font-weight:800; color:var(--secondary);">這筆是待請款 💸</span>
@@ -166,7 +208,7 @@
                 <option value="全部">📂 全部分類</option>
                 <option value="待請款">💸 待請款項目</option>
                 <option value="餐飲">🍔 餐飲</option><option value="餐費預付">💰 餐費預付</option><option value="住宿">🏨 住宿</option>
-                <option value="交通">🚗 交通</option><option value="購物">🛍️ 購物</option><option value="電話及會員">📱 電話及會員</option>
+                <option value="交通">🚗 交通</option><option value="購物">🛍️ 購物</option><option value="👗 治裝">👗 治裝</option><option value="電話及會員">📱 電話及會員</option>
                 <option value="醫療">🏥 醫療</option><option value="保養美體">💆 保養美體</option><option value="儲值">💵 儲值</option>
                 <option value="罰款">🚔 罰款</option><option value="狗勾">🐶 狗勾</option><option value="爸爸贊助">🎁 爸爸贊助</option>
                 <option value="其他">✨ 其他</option>
@@ -181,6 +223,10 @@
     const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZmxhY3lwYWVnZm1nc3R3emViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1Mzk3NjksImV4cCI6MjA5NDExNTc2OX0.RsC760Xyq1bTN6zq9Itm3rDoRLqbVgglj6EegkA5gmQ";
     const GAS_URL = "https://script.google.com/macros/s/AKfycbxi8QHWjSitWQJUVTLntehHUYbm-QwyNp6c296bvCDxJIoc_k-Pq-Cu8R21JAiJx26n/exec";
     const db = window.supabase.createClient(SB_URL, SB_KEY);
+    
+    // 用於記錄切換按鈕狀態的全域變數
+    let currentPayer = "小精靈";
+    let currentNeedType = "需要";
     let localData = [];
 
     function initHearts() {
@@ -198,6 +244,30 @@
         }, 700);
     }
 
+    // 處理付款人勾選切換
+    function togglePayer() {
+        const box = document.getElementById('payer-toggle');
+        if (currentPayer === "小精靈") {
+            currentPayer = "西瓜";
+            box.className = "toggle-box payer-water";
+        } else {
+            currentPayer = "小精靈";
+            box.className = "toggle-box payer-elf";
+        }
+    }
+
+    // 處理類型勾選切換
+    function toggleType() {
+        const box = document.getElementById('type-toggle');
+        if (currentNeedType === "需要") {
+            currentNeedType = "想要";
+            box.className = "toggle-box type-want";
+        } else {
+            currentNeedType = "需要";
+            box.className = "toggle-box type-need";
+        }
+    }
+
     function switchTab(tab) {
         document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -208,7 +278,7 @@
         } else {
             document.getElementById('list-page').classList.add('active');
             document.getElementById('tab2').classList.add('active');
-            renderList(); // 切換時強制渲染
+            renderList();
         }
     }
 
@@ -228,7 +298,6 @@
             const mMatch = d.getFullYear() === year && (d.getMonth() + 1) === month;
             const pMatch = (pFilter === "全部" || i.payer.trim() === pFilter);
             
-            // 過濾待請款
             let cMatch = false;
             if (cFilter === "全部") {
                 cMatch = true;
@@ -247,9 +316,8 @@
 
         listContainer.innerHTML = filtered.map(i => {
             const isElf = i.payer.trim() === '小精靈';
-            const borderColor = isElf ? '#ff6fa9' : '#4da6ff';
+            const borderColor = isElf ? '#ff6fa9' : '#4a90e2';
             
-            // 處理請款狀態標籤與結清按鈕
             let reimburseTag = '';
             let actionButton = '';
             if (i.is_reimburse) {
@@ -257,7 +325,8 @@
                     reimburseTag = '<span class="tag tag-settled">已結清 ✓</span>';
                 } else {
                     reimburseTag = '<span class="tag tag-reim">待請款</span>';
-                    actionButton = `<br><button class="settle-btn" onclick="handleSettle('${i.id}', '${i.title}')">銷帳 🛠️</button>`;
+                    // 點擊銷帳會同步啟動「身分反轉結清」機制
+                    actionButton = `<br><button class="settle-btn" onclick="handleSettle('${i.id}', '${i.title}', '${i.payer.trim()}', ${i.amount}, '${i.created_at}')">銷帳 🛠️</button>`;
                 }
             }
 
@@ -281,13 +350,32 @@
         }).join('');
     }
 
-    // 處理結清按鈕功能
-    async function handleSettle(id, title) {
-        if (!confirm(`確定要將「${title}」結清銷帳嗎？`)) return;
+    // 處理結清功能 (包含身分反轉平帳)
+    async function handleSettle(id, title, originalPayer, amount, originalDate) {
+        if (!confirm(`確定要將「${title}」結清銷帳嗎？\n這將會自動在對方帳上建立一筆反向的結清日常紀錄唷！`)) return;
         try {
-            const { error } = await db.from('expenses').update({ is_settled: true }).eq('id', id);
-            if (error) throw error;
-            alert("結清成功！🎉");
+            // 1. 將原本的待請款項目標記為已結清
+            const { error: updateError } = await db.from('expenses').update({ is_settled: true }).eq('id', id);
+            if (updateError) throw updateError;
+            
+            // 2. 身分反轉：計算出誰是接收這筆帳的人
+            const oppositePayer = (originalPayer === "小精靈") ? "西瓜" : "小精靈";
+            const settleTitle = `銷帳: ${title}`;
+            
+            // 3. 自動插入一筆反向結清普通帳目
+            const { error: insertError } = await db.from('expenses').insert([{
+                title: settleTitle,
+                amount: amount,
+                payer: oppositePayer,
+                category: "其他",
+                need_type: "需要",
+                is_reimburse: false,
+                is_settled: false,
+                created_at: originalDate // 保持跟原本同時間以方便對帳
+            }]);
+            if (insertError) throw insertError;
+
+            alert("結清並反轉銷帳成功！🎉");
             await refresh();
         } catch (err) {
             alert("結清失敗：" + err.message);
@@ -302,9 +390,9 @@
         try {
             const amount = parseFloat(amtVal);
             const title = document.getElementById('title').value || "日常開銷";
-            const payer = document.getElementById('payer').value;
+            const payer = currentPayer; // 讀取自勾選切換欄位
             const category = document.getElementById('category').value;
-            const needType = document.getElementById('need_type').value;
+            const needType = currentNeedType; // 讀取自勾選切換欄位
             const isReimburse = document.getElementById('is_reimburse').checked;
             const customDate = document.getElementById('custom-date').value;
             const finalDate = `${customDate}T${new Date().toTimeString().split(' ')[0]}.000Z`;
@@ -335,7 +423,6 @@
         if(!monthInput) return;
         const [year, month] = monthInput.split('-').map(Number);
         
-        // 抓取全新數據
         const { data, error } = await db.from('expenses').select('*').order('created_at', { ascending: false });
         if (error) {
             document.getElementById('stats-board').innerText = "數據讀取失敗...";
@@ -349,13 +436,11 @@
             const d = new Date(i.created_at);
             const amt = Number(i.amount);
             
-            // 本月統計（不論是否請款皆算入當月總和）
             if (d.getFullYear() === year && (d.getMonth() + 1) === month) {
                 if (i.payer.trim() === "小精靈") s.elf += amt; else s.water += amt;
                 s.total += amt;
             }
             
-            // 待請款計算（跨月份，只要未結清 is_settled = false 都要累加顯示）
             if (i.is_reimburse && !i.is_settled) {
                 if (i.payer.trim() === "小精靈") s.elf_r += amt;
                 else s.water_r += amt;
@@ -373,7 +458,6 @@
             </div>
         `;
         
-        // 確保數據更新後，立刻渲染當前明細畫面
         renderList();
     }
 
@@ -382,8 +466,6 @@
         const d = new Date();
         document.getElementById('view-month').value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
         document.getElementById('custom-date').value = d.toISOString().split('T')[0];
-        
-        // 進入頁面先撈資料
         await refresh();
     };
 </script>
