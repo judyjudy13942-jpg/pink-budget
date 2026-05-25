@@ -67,7 +67,6 @@
             color: #4a313d; outline: none; -webkit-appearance: none;
         }
 
-        /* 日期區間並排樣式 */
         .date-range-row {
             display: flex; gap: 8px; align-items: center; margin-top: 5px;
         }
@@ -141,7 +140,7 @@
 
 <div id="input-page" class="container active">
     <div class="card">
-        <h3>📊 發薪週期錢錢統計</h3>
+        <h3>📊 錢錢統計</h3>
         <div class="date-range-row">
             <input type="date" id="start-date" onchange="refresh()">
             <span style="font-weight: bold; color: #a38d97;">至</span>
@@ -208,6 +207,8 @@
     <div class="card">
         <h3 style="margin-bottom: 15px;">📜 完整明細清單</h3>
         <div style="display:flex; flex-direction: column; gap:10px; margin-bottom: 15px;">
+            <input type="month" id="filter-month" onchange="renderList()">
+            
             <select id="filter-payer" onchange="renderList()">
                 <option value="全部">👤 全部付款人</option>
                 <option value="小精靈">🧚 小精靈</option>
@@ -252,19 +253,17 @@
         }, 700);
     }
 
-    // 計算某年某月10號，遇假日提前的實際發薪日
     function getPayday(year, month) {
         let date = new Date(year, month - 1, 10);
-        let day = date.getDay(); // 0: 日, 6: 六
+        let day = date.getDay();
         if (day === 0) {
-            date.setDate(date.getDate() - 2); // 星期日提前到星期五
+            date.setDate(date.getDate() - 2);
         } else if (day === 6) {
-            date.setDate(date.getDate() - 1); // 星期六提前到星期五
+            date.setDate(date.getDate() - 1);
         }
         return date;
     }
 
-    // ✨ 自動偵測發薪日區間邏輯
     function autoDetectPaydayRange() {
         const today = new Date();
         today.setHours(0,0,0,0);
@@ -272,13 +271,10 @@
         const currentYear = today.getFullYear();
         const currentMonth = today.getMonth() + 1;
         
-        // 算出這個月的發薪日
         let thisMonthPayday = getPayday(currentYear, currentMonth);
-        
         let startDate, endDate;
         
         if (today >= thisMonthPayday) {
-            // 如果今天已經到了或過了這個月發薪日，區間是：這個月發薪日 ~ 下個月發薪日前一天
             startDate = thisMonthPayday;
             let nextMonth = currentMonth === 12 ? 1 : currentMonth + 1;
             let nextYear = currentMonth === 12 ? currentYear + 1 : currentYear;
@@ -286,7 +282,6 @@
             endDate = new Date(nextMonthPayday);
             endDate.setDate(endDate.getDate() - 1);
         } else {
-            // 如果今天還沒到這個月發薪日，區間是：上個月發薪日 ~ 這個月發薪日前一天
             let prevMonth = currentMonth === 1 ? 12 : currentMonth - 1;
             let prevYear = currentMonth === 1 ? currentYear - 1 : currentYear;
             startDate = getPayday(prevYear, prevMonth);
@@ -294,7 +289,6 @@
             endDate.setDate(endDate.getDate() - 1);
         }
 
-        // 把格式填入 input type="date"
         document.getElementById('start-date').value = startDate.toISOString().split('T')[0];
         document.getElementById('end-date').value = endDate.toISOString().split('T')[0];
     }
@@ -339,6 +333,7 @@
         }
     }
 
+    // ✨ 修正明細清單渲染：完全依賴獨立的「月份篩選欄位」進行篩選
     function renderList() {
         const listContainer = document.getElementById('record-list');
         if (!listContainer) return;
@@ -346,17 +341,15 @@
         const pFilter = document.getElementById('filter-payer').value;
         const cFilter = document.getElementById('filter-category').value;
         
-        // 使用畫面上自訂區間篩選明細
-        const startVal = document.getElementById('start-date').value;
-        const endVal = document.getElementById('end-date').value;
-        if(!startVal || !endVal) return;
-        
-        const startLimit = new Date(startVal); startLimit.setHours(0,0,0,0);
-        const endLimit = new Date(endVal); endLimit.setHours(23,59,59,999);
+        // 抓取明細專屬的月份輸入框 (YYYY-MM)
+        const monthInput = document.getElementById('filter-month').value;
+        if(!monthInput) return;
+        const [year, month] = monthInput.split('-').map(Number);
         
         const filtered = localData.filter(i => {
             const d = new Date(i.created_at);
-            const dateMatch = d >= startLimit && d <= endLimit;
+            // 比對建立時間的年分與月分是否相符
+            const monthMatch = d.getFullYear() === year && (d.getMonth() + 1) === month;
             const pMatch = (pFilter === "全部" || i.payer.trim() === pFilter);
             
             let cMatch = false;
@@ -367,11 +360,11 @@
             } else {
                 cMatch = i.category === cFilter;
             }
-            return dateMatch && pMatch && cMatch;
+            return monthMatch && pMatch && cMatch;
         });
 
         if (filtered.length === 0) {
-            listContainer.innerHTML = '<div style="text-align:center; padding:30px; color:#999;">這個發薪區間空空如也唷 🐾</div>';
+            listContainer.innerHTML = '<div style="text-align:center; padding:30px; color:#999;">這個月份空空如也唷 🐾</div>';
             return;
         }
 
@@ -491,13 +484,11 @@
             const d = new Date(i.created_at);
             const amt = Number(i.amount);
             
-            // 根據畫面上設定的發薪日期區間進行篩選統計
             if (d >= startLimit && d <= endLimit) {
                 if (i.payer.trim() === "小精靈") s.elf += amt; else s.water += amt;
                 s.total += amt;
             }
             
-            // 待請款則不限時間（不管哪個月沒結，都應該掛在上面直到被銷帳）
             if (i.is_reimburse && !i.is_settled) {
                 if (i.payer.trim() === "小精靈") s.elf_r += amt;
                 else s.water_r += amt;
@@ -521,10 +512,11 @@
     window.onload = async () => {
         initHearts();
         
-        // 🔥 1. 自動計算並偵測符合「10號發薪日遇到假日提前」的區間並填入
         autoDetectPaydayRange();
         
         const d = new Date();
+        // ✨ 明細月份選擇器：預設填入當前的年份與月份 (YYYY-MM)
+        document.getElementById('filter-month').value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
         document.getElementById('custom-date').value = d.toISOString().split('T')[0];
         await refresh();
     };
