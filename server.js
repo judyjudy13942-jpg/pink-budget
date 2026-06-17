@@ -4,8 +4,8 @@ const { MongoClient } = require('mongodb');
 require('dotenv').config();
 
 // --- 請在這裡修改你們在 LINE 上的名稱 ---
-const WIFE_LINE_NAME = '你的名字';      // 👈 請改成老婆的 LINE 名字
-const HUSBAND_LINE_NAME = '老公的名字';  // 👈 請改成老公的 LINE 名字
+const WIFE_LINE_NAME = '庭庭庭';      // 👈 請改成老婆的 LINE 名字
+const HUSBAND_LINE_NAME = '🍉';  // 👈 請改成老公的 LINE 名字
 // -------------------------------------
 
 // LINE 機器人基本設定
