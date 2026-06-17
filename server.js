@@ -3,9 +3,9 @@ const line = require('@line/bot-sdk');
 const { MongoClient } = require('mongodb');
 require('dotenv').config();
 
-// --- 請在這裡修改你們在 LINE 上的名稱 ---
-const WIFE_LINE_NAME = '庭庭庭';      // 👈 請改成老婆的 LINE 名字
-const HUSBAND_LINE_NAME = '🍉';  // 👈 請改成老公的 LINE 名字
+// --- 已幫你修改好你們在 LINE 上的名稱 ---
+const WIFE_LINE_NAME = '庭庭庭';  // 👈 妳的 LINE 名字
+const HUSBAND_LINE_NAME = '🍉';   // 👈 對方的西瓜符號
 // -------------------------------------
 
 // LINE 機器人基本設定
@@ -64,7 +64,7 @@ async function handleTextByBot(event) {
   try {
     if (event.source.userId) {
       const profile = await lineClient.getProfile(event.source.userId);
-      senderName = profile.displayName;
+      senderName = profile.displayName ? profile.displayName.trim() : '未知使用者';
     }
   } catch (e) {
     console.error('無法取得用戶 Profile:', e);
@@ -113,10 +113,10 @@ async function handleTextByBot(event) {
     records.forEach(r => {
       if (r.role === 'wife') {
         wifeTotal += r.amount;
-        detailText += ` [${r.date}] 老婆 支出 $${r.amount} (${r.note || '無備註'})\n`;
+        detailText += ` [${r.date}] 庭庭庭 支出 $${r.amount} (${r.note || '無備註'})\n`;
       } else if (r.role === 'husband') {
         husbandTotal += r.amount;
-        detailText += ` [${r.date}] 老公 支出 $${r.amount} (${r.note || '無備註'})\n`;
+        detailText += ` [${r.date}] 🍉 支出 $${r.amount} (${r.note || '無備註'})\n`;
       }
     });
 
@@ -125,16 +125,16 @@ async function handleTextByBot(event) {
     let settleText = '';
 
     if (wifeTotal > half) {
-      settleText = `👉 老公需給老婆 $${(wifeTotal - half).toFixed(0)} 元`;
+      settleText = `👉 🍉 需給庭庭庭 $${(wifeTotal - half).toFixed(0)} 元`;
     } else if (husbandTotal > half) {
-      settleText = `👉 老婆需給老公 $${(husbandTotal - half).toFixed(0)} 元`;
+      settleText = `👉 庭庭庭 需給 🍉 $${(husbandTotal - half).toFixed(0)} 元`;
     } else {
       settleText = `👉 雙方持平，不需結帳！`;
     }
 
     const replyMsg = `📊 【本期帳務統計】(自 ${startDate} 起)\n\n` +
-                     `👩 老婆總支出: $${wifeTotal}\n` +
-                     `👨 老公總支出: $${husbandTotal}\n` +
+                     `👩 庭庭庭總支出: $${wifeTotal}\n` +
+                     `👨 🍉總支出: $${husbandTotal}\n` +
                      `💰 總花費: $${grandTotal}\n` +
                      `均分金額: $${half.toFixed(0)}\n` +
                      `-----------------------\n` +
@@ -150,7 +150,7 @@ async function handleTextByBot(event) {
     if (!userRole) {
       return lineClient.replyMessage(replyToken, { 
         type: 'text', 
-        text: `⚠️ 系統無法識別您的 LINE 名稱「${senderName}」，請檢查 server.js 中的名字設定是否與 LINE 顯示完全一致喔！` 
+        text: `⚠️ 系統無法識別您的 LINE 名稱「${senderName}」，請確認是否與程式碼中的「庭庭庭」或「🍉」完全一致（包含空格、貼圖等）喔！` 
       });
     }
 
@@ -170,7 +170,7 @@ async function handleTextByBot(event) {
 
     await billingCollection.insertOne(newRecord);
 
-    const roleName = userRole === 'wife' ? '👩 老婆' : '👨 老公';
+    const roleName = userRole === 'wife' ? '👩 庭庭庭' : '👨 🍉';
     return lineClient.replyMessage(replyToken, { 
       type: 'text', 
       text: `✅ ${roleName} 已成功記帳！\n💰 金額: $${amount}\n📝 備註: ${note || '無'}\n📅 日期: ${today}` 
