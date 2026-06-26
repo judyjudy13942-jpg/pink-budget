@@ -1,525 +1,145 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>✨ 小精靈 & 西瓜 記帳本本 ✨</title>
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <style>
-        :root {
-            --primary: #ff6fa9;
-            --secondary: #df4d8f;
-            --card-bg: rgba(255, 255, 255, 0.88);
-            --radius: 24px;
-        }
-
-        body {
-            margin: 0; padding: 0;
-            background-color: #fff5f8;
-            background-image: url('底圖.jpg'), url('底圖.JPG'), linear-gradient(135deg, #fff5f8 0%, #ffeef4 100%);
-            background-repeat: no-repeat;
-            background-position: center center;
-            background-attachment: fixed;
-            background-size: cover;
-            font-family: -apple-system, "Noto Sans TC", sans-serif;
-            color: #4a313d; overflow-x: hidden;
-            display: flex; flex-direction: column; align-items: center;
-        }
-
-        #heart-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
-        .heart { position: absolute; bottom: -50px; animation: floatUp linear infinite; color: #ffb6d3; opacity: 0.6; }
-        @keyframes floatUp {
-            0% { transform: translateY(0) rotate(0deg) scale(0.5); opacity: 0; }
-            20% { opacity: 0.6; }
-            100% { transform: translateY(-110vh) rotate(360deg) scale(1.2); opacity: 0; }
-        }
-
-        .tabs { 
-            position: sticky; top: 15px; z-index: 10; width: 90%; max-width: 380px;
-            display: flex; background: rgba(255, 255, 255, 0.95); padding: 6px; 
-            border-radius: 40px; box-shadow: 0 8px 20px rgba(255, 111, 169, 0.15); margin: 15px 0;
-            backdrop-filter: blur(5px);
-        }
-        .tab-btn { 
-            flex: 1; text-align: center; font-weight: bold; color: #a38d97; cursor: pointer; 
-            border: none; background: none; font-size: 15px; padding: 12px 0;
-            border-radius: 30px; transition: 0.3s;
-        }
-        .tab-btn.active { background: var(--primary); color: white; box-shadow: 0 4px 10px rgba(255, 111, 169, 0.3); }
-
-        .container { width: 100%; max-width: 420px; padding: 0 15px; box-sizing: border-box; z-index: 1; display: none; }
-        .container.active { display: block !important; }
-
-        .card { 
-            background: var(--card-bg); border-radius: var(--radius); padding: 22px; 
-            margin-bottom: 20px; box-shadow: 0 12px 35px rgba(255, 182, 193, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.6); box-sizing: border-box; width: 100%;
-            backdrop-filter: blur(8px);
-        }
-
-        .input-group { margin-top: 15px; width: 100%; box-sizing: border-box; }
-        .input-group label { display: block; margin-bottom: 6px; font-weight: bold; font-size: 14px; color: #7a5e6c; }
-        input, select { 
-            width: 100% !important; height: 50px; border-radius: 16px;
-            border: 2px solid #f8f0f2; font-size: 16px; background: #fff;
-            padding: 0 15px !important; box-sizing: border-box !important;
-            color: #4a313d; outline: none; -webkit-appearance: none;
-        }
-
-        .date-range-row {
-            display: flex; gap: 8px; align-items: center; margin-top: 5px;
-        }
-        .date-range-row input { height: 40px; font-size: 14px; }
-
-        .selector-row {
-            display: flex; gap: 8px; background: #f8f0f2; padding: 4px; border-radius: 16px; height: 50px; box-sizing: border-box;
-        }
-        .selector-btn {
-            flex: 1; border: none; background: transparent; border-radius: 12px; font-weight: 800; font-size: 14px; color: #a38d97; cursor: pointer; transition: all 0.2s ease;
-        }
-        
-        .selector-btn.active-elf { background: var(--primary); color: white; box-shadow: 0 4px 8px rgba(255, 111, 169, 0.25); }
-        .selector-btn.active-water { background: #4a90e2; color: white; box-shadow: 0 4px 8px rgba(74, 144, 226, 0.25); }
-        
-        .selector-btn.active-need { background: #b08bb2; color: white; box-shadow: 0 4px 8px rgba(176, 139, 178, 0.25); }
-        .selector-btn.active-want { background: #ffd93d; color: #4a313d; box-shadow: 0 4px 8px rgba(255, 217, 61, 0.25); }
-
-        .checkbox-row { 
-            display: flex; align-items: center; background: rgba(255, 249, 251, 0.8);
-            padding: 16px; border-radius: 18px; margin-top: 20px; 
-            border: 2px dashed #f3a9c6; cursor: pointer;
-        }
-        #is_reimburse { 
-            width: 24px !important; height: 24px !important; appearance: none; -webkit-appearance: none;
-            border: 2px solid #f3a9c6; border-radius: 8px; background: white; 
-            margin-right: 12px !important; position: relative; flex-shrink: 0;
-        }
-        #is_reimburse:checked { background: var(--primary); border-color: var(--primary); }
-        #is_reimburse:checked::after { 
-            content: '✓'; color: white; position: absolute; left: 50%; top: 50%; 
-            transform: translate(-50%, -50%); font-weight: 900; font-size: 16px;
-        }
-
-        button#addBtn { 
-            width: 100%; height: 58px; border: none; border-radius: 18px;
-            background: linear-gradient(135deg, #ff85b9 0%, #df4d8f 100%);
-            color: white; font-weight: 800; font-size: 18px; cursor: pointer; margin-top: 25px;
-            box-shadow: 0 6px 15px rgba(223, 77, 143, 0.3);
-        }
-
-        .total-amount { font-size: 42px; font-weight: 900; color: var(--primary); text-align: center; }
-
-        .record-item { 
-            background: rgba(255, 255, 255, 0.95); border-radius: 18px; padding: 16px; margin-top: 12px;
-            border-left: 8px solid #eee; display: flex; justify-content: space-between; align-items: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.02);
-        }
-        .tag { padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; color: white; display: inline-block; margin-right: 4px; }
-        .tag-cat { background: #ffd93d; color: #4a313d; }
-        .tag-need { background: #b08bb2; }
-        .tag-reim { background: #7b61ff; }
-
-        .settle-btn {
-            background: #7b61ff; color: white; border: none; border-radius: 8px;
-            padding: 6px 12px; font-size: 12px; font-weight: bold; cursor: pointer;
-            margin-top: 8px; display: inline-block; transition: 0.2s;
-            box-shadow: 0 3px 6px rgba(123, 97, 255, 0.2);
-        }
-        .settle-btn:active { transform: scale(0.95); opacity: 0.9; }
-    </style>
+    <title>夢幻粉紅記帳</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
 </head>
 <body>
-
-<div id="heart-container"></div>
-
-<div class="tabs">
-    <div id="tab1" class="tab-btn active" onclick="switchTab('input')">🧚 記帳</div>
-    <div id="tab2" class="tab-btn" onclick="switchTab('list')">📜 明細</div>
-</div>
-
-<div id="input-page" class="container active">
-    <div class="card">
-        <h3>📊 錢錢統計</h3>
-        <div class="date-range-row">
-            <input type="date" id="start-date" onchange="refresh()">
-            <span style="font-weight: bold; color: #a38d97;">至</span>
-            <input type="date" id="end-date" onchange="refresh()">
-        </div>
-        <div id="stats-board" style="margin-top: 15px;">載入中...</div>
-    </div>
-
-    <div class="card">
-        <h2>💖 記下一筆浪漫</h2>
-        <div class="input-group"><label>日期</label><input id="custom-date" type="date"></div>
-        
-        <div class="row" style="display:flex; gap:10px;">
-            <div class="input-group" style="flex:1.2;">
-                <label>付款人</label>
-                <div class="selector-row">
-                    <button type="button" id="btn-elf" class="selector-btn active-elf" onclick="setPayer('小精靈')">老婆</button>
-                    <button type="button" id="btn-water" class="selector-btn" onclick="setPayer('西瓜')">老公</button>
-                </div>
-            </div>
-            <div class="input-group" style="flex:1.8;"><label>項目</label><input id="title" type="text" placeholder="買了什麼？"></div>
+    <div class="app-shell">
+        <div class="glass-panel text-center">
+            <div class="bubble-decor">🌸</div>
+            <h2 class="panel-title">本月累積花費</h2>
+            <div class="total-amount">NT$ <span id="month-total">0</span></div>
         </div>
 
-        <div class="input-group"><label>金額 (退款打負數 - )</label><input id="amount" type="text" inputmode="hyphenated-decimal" placeholder="0"></div>
-        
-        <div class="row" style="display:flex; gap:10px;">
-            <div class="input-group" style="flex:1;">
-                <label>分類</label>
-                <select id="category">
-                    <option value="餐飲">🍔 餐飲</option>
-                    <option value="餐費預付">💰 餐費預付</option>
-                    <option value="住宿">🏨 住宿</option>
-                    <option value="交通">🚗 交通</option>
-                    <option value="購物">🛍️ 購物</option>
-                    <option value="👗 治裝">👗 治裝</option>
-                    <option value="電話及會員">📱 電話及會員</option>
-                    <option value="醫療">🏥 醫療</option>
-                    <option value="保養美體">💆 保養美體</option>
-                    <option value="儲值">💵 儲值</option>
-                    <option value="罰款">🚔 罰款</option>
-                    <option value="狗勾">🐶 狗勾</option>
-                    <option value="爸爸贊助">🎁 爸爸贊助</option>
-                    <option value="其他">✨ 其他</option>
-                </select>
-            </div>
-            <div class="input-group" style="flex:1;">
-                <label>類型</label>
-                <div class="selector-row">
-                    <button type="button" id="btn-need" class="selector-btn active-need" onclick="setNeedType('需要')">✅ 需要</button>
-                    <button type="button" id="btn-want" class="selector-btn" onclick="setNeedType('想要')">🎁 想要</button>
-                </div>
+        <div class="glass-panel">
+            <h3 class="panel-sub-title">💰 預算餘額分配</h3>
+            <div class="budget-grid">
+                <div class="budget-item"><span>存錢:</span><input type="number" id="bg-save" onchange="updateBudget('save', this.value)"></div>
+                <div class="budget-item"><span>可花費:</span><input type="number" id="bg-spend" onchange="updateBudget('spend', this.value)"></div>
+                <div class="budget-item"><span>美妝:</span><input type="number" id="bg-makeup" onchange="updateBudget('makeup', this.value)"></div>
+                <div class="budget-item"><span>運動:</span><input type="number" id="bg-sport" onchange="updateBudget('sport', this.value)"></div>
+                <div class="budget-item"><span>保險:</span><input type="number" id="bg-insurance" onchange="updateBudget('insurance', this.value)"></div>
             </div>
         </div>
 
-        <div class="checkbox-row" onclick="document.getElementById('is_reimburse').click();">
-            <input type="checkbox" id="is_reimburse" onclick="event.stopPropagation();">
-            <span style="font-weight:800; color:var(--secondary);">這筆是待請款 💸</span>
-        </div>
-        <button id="addBtn" onclick="handleAddRecord()">✨ 存入本本 ✨</button>
-    </div>
-</div>
-
-<div id="list-page" class="container">
-    <div class="card">
-        <h3 style="margin-bottom: 15px;">📜 完整明細清單</h3>
-        <div style="display:flex; flex-direction: column; gap:10px; margin-bottom: 15px;">
-            <input type="month" id="filter-month" onchange="renderList()">
+        <div class="glass-panel keep-panel">
+            <div class="input-row">
+                <input type="date" id="tx-date">
+                <input type="text" id="tx-item" placeholder="項目內容 (選填)">
+            </div>
             
-            <select id="filter-payer" onchange="renderList()">
-                <option value="全部">👤 全部付款人</option>
-                <option value="小精靈">🧚 小精靈</option>
-                <option value="西瓜">🍉 西瓜</option>
-            </select>
-            <select id="filter-category" onchange="renderList()">
-                <option value="全部">📂 全部分類</option>
-                <option value="待請款">💸 待請款項目</option>
-                <option value="餐飲">🍔 餐飲</option><option value="餐費預付">💰 餐費預付</option><option value="住宿">🏨 住宿</option>
-                <option value="交通">🚗 交通</option><option value="購物">🛍️ 購物</option><option value="👗 治裝">👗 治裝</option><option value="電話及會員">📱 電話及會員</option>
-                <option value="醫療">🏥 醫療</option><option value="保養美體">💆 保養美體</option><option value="儲值">💵 儲值</option>
-                <option value="罰款">🚔 罰款</option><option value="狗勾">🐶 狗勾</option><option value="爸爸贊助">🎁 爸爸贊助</option>
-                <option value="其他">✨ 其他</option>
-            </select>
-        </div>
-        <div id="record-list">正在讀取明細中...</div>
-    </div>
-</div>
+            <div class="category-container">
+                <div class="cat-btn" onclick="selectCat('主食')">🍱 主食</div>
+                <div class="cat-btn" onclick="selectCat('點心')">🍰 點心</div>
+                <div class="cat-btn" onclick="selectCat('住宿')">🎀 住宿</div>
+                <div class="cat-btn" onclick="selectCat('交通')">🚗 交通</div>
+                <div class="cat-btn" onclick="selectCat('購物')">🛍️ 購物</div>
+                <div class="cat-btn" onclick="selectCat('治裝')">👗 治裝</div>
+                <div class="cat-btn" onclick="selectCat('電話及會員')">📱 電話會員</div>
+                <div class="cat-btn" onclick="selectCat('醫療')">🏥 醫療</div>
+                <div class="cat-btn" onclick="selectCat('保養美體')">💅 保養美體</div>
+                <div class="cat-btn" onclick="selectCat('儲值及娛樂')">🎮 娛樂儲值</div>
+                <div class="cat-btn" onclick="selectCat('狗勾')">🐶 狗勾</div>
+                <div class="cat-btn" onclick="selectCat('其他')">✨ 其他</div>
+            </div>
 
-<script>
-    const SB_URL = "https://dfflacypaegfmgstwzeb.supabase.co";
-    const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZmxhY3lwYWVnZm1nc3R3emViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1Mzk3NjksImV4cCI6MjA5NDExNTc2OX0.RsC760Xyq1bTN6zq9Itm3rDoRLqbVgglj6EegkA5gmQ";
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbxi8QHWjSitWQJUVTLntehHUYbm-QwyNp6c296bvCDxJIoc_k-Pq-Cu8R21JAiJx26n/exec";
-    const db = window.supabase.createClient(SB_URL, SB_KEY);
-    
-    let currentPayer = "小精靈";
-    let currentNeedType = "需要";
-    let localData = [];
-
-    function initHearts() {
-        const container = document.getElementById('heart-container');
-        if (!container) return;
-        setInterval(() => {
-            const h = document.createElement('div');
-            h.className = 'heart'; h.innerText = '❤';
-            h.style.left = Math.random() * 100 + 'vw';
-            h.style.fontSize = (Math.random() * 15 + 10) + 'px';
-            const dur = (Math.random() * 5 + 5);
-            h.style.animationDuration = dur + 's';
-            container.appendChild(h);
-            setTimeout(() => h.remove(), dur * 1000);
-        }, 700);
-    }
-
-    function getPayday(year, month) {
-        let date = new Date(year, month - 1, 10);
-        let day = date.getDay();
-        if (day === 0) {
-            date.setDate(date.getDate() - 2);
-        } else if (day === 6) {
-            date.setDate(date.getDate() - 1);
-        }
-        return date;
-    }
-
-    function autoDetectPaydayRange() {
-        const today = new Date();
-        today.setHours(0,0,0,0);
-        
-        const currentYear = today.getFullYear();
-        const currentMonth = today.getMonth() + 1;
-        
-        let thisMonthPayday = getPayday(currentYear, currentMonth);
-        let startDate, endDate;
-        
-        if (today >= thisMonthPayday) {
-            startDate = thisMonthPayday;
-            let nextMonth = currentMonth === 12 ? 1 : currentMonth + 1;
-            let nextYear = currentMonth === 12 ? currentYear + 1 : currentYear;
-            let nextMonthPayday = getPayday(nextYear, nextMonth);
-            endDate = new Date(nextMonthPayday);
-            endDate.setDate(endDate.getDate() - 1);
-        } else {
-            let prevMonth = currentMonth === 1 ? 12 : currentMonth - 1;
-            let prevYear = currentMonth === 1 ? currentYear - 1 : currentYear;
-            startDate = getPayday(prevYear, prevMonth);
-            endDate = new Date(thisMonthPayday);
-            endDate.setDate(endDate.getDate() - 1);
-        }
-
-        document.getElementById('start-date').value = startDate.toISOString().split('T')[0];
-        document.getElementById('end-date').value = endDate.toISOString().split('T')[0];
-    }
-
-    function setPayer(payer) {
-        currentPayer = payer;
-        const btnElf = document.getElementById('btn-elf');
-        const btnWater = document.getElementById('btn-water');
-        if(payer === '小精靈') {
-            btnElf.className = "selector-btn active-elf";
-            btnWater.className = "selector-btn";
-        } else {
-            btnElf.className = "selector-btn";
-            btnWater.className = "selector-btn active-water";
-        }
-    }
-
-    function setNeedType(type) {
-        currentNeedType = type;
-        const btnNeed = document.getElementById('btn-need');
-        const btnWant = document.getElementById('btn-want');
-        if(type === '需要') {
-            btnNeed.className = "selector-btn active-need";
-            btnWant.className = "selector-btn";
-        } else {
-            btnNeed.className = "selector-btn";
-            btnWant.className = "selector-btn active-want";
-        }
-    }
-
-    function switchTab(tab) {
-        document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        
-        if(tab === 'input') {
-            document.getElementById('input-page').classList.add('active');
-            document.getElementById('tab1').classList.add('active');
-        } else {
-            document.getElementById('list-page').classList.add('active');
-            document.getElementById('tab2').classList.add('active');
-            renderList();
-        }
-    }
-
-    // ✨ 修正明細清單渲染：完全依賴獨立的「月份篩選欄位」進行篩選
-    function renderList() {
-        const listContainer = document.getElementById('record-list');
-        if (!listContainer) return;
-
-        const pFilter = document.getElementById('filter-payer').value;
-        const cFilter = document.getElementById('filter-category').value;
-        
-        // 抓取明細專屬的月份輸入框 (YYYY-MM)
-        const monthInput = document.getElementById('filter-month').value;
-        if(!monthInput) return;
-        const [year, month] = monthInput.split('-').map(Number);
-        
-        const filtered = localData.filter(i => {
-            const d = new Date(i.created_at);
-            // 比對建立時間的年分與月分是否相符
-            const monthMatch = d.getFullYear() === year && (d.getMonth() + 1) === month;
-            const pMatch = (pFilter === "全部" || i.payer.trim() === pFilter);
+            <div class="amount-display">已選分類: <span id="selected-cat-text" style="color:#ff69b4;">未選擇</span> | 金額: $<span id="tx-amount">0</span></div>
             
-            let cMatch = false;
-            if (cFilter === "全部") {
-                cMatch = true;
-            } else if (cFilter === "待請款") {
-                cMatch = i.is_reimburse === true;
+            <div class="keyboard">
+                <div class="key" onclick="pressKey('1')">1</div><div class="key" onclick="pressKey('2')">2</div><div class="key" onclick="pressKey('3')">3</div>
+                <div class="key" onclick="pressKey('4')">4</div><div class="key" onclick="pressKey('5')">5</div><div class="key" onclick="pressKey('6')">6</div>
+                <div class="key" onclick="pressKey('7')">7</div><div class="key" onclick="pressKey('8')">8</div><div class="key" onclick="pressKey('9')">9</div>
+                <div class="key backspace" onclick="pressKey('C')">⌫</div><div class="key" onclick="pressKey('0')">0</div>
+                <div class="key submit-btn" onclick="submitRecord()">送出🌸</div>
+            </div>
+        </div>
+        
+        <div class="nav-bar">
+            <a href="index.html" class="nav-item active">記帳首頁</a>
+            <a href="details.html" class="nav-item">明細歷史</a>
+        </div>
+    </div>
+
+    <script>
+        // ⚠️ 貼上你剛才從 Google 得到的網頁應用程式 URL
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbysT5brkEOmCNvDw_LWeesJlDLr-W_jH9DzK2itaa_6oeMdq27w0_rHvUfD_t0QTyW8/exec"; 
+
+        let currentAmount = "0";
+        let chosenCategory = "";
+
+        // 初始化設定
+        window.addEventListener('load', () => {
+            document.getElementById('tx-date').valueAsDate = new Date();
+            // 先載入 LocalStorage 讓畫面秒出數字
+            const fields = ['save', 'spend', 'makeup', 'sport', 'insurance'];
+            fields.forEach(f => {
+                if(localStorage.getItem('budget_'+f)) document.getElementById('bg-'+f).value = localStorage.getItem('budget_'+f);
+            });
+            // 從雲端同步最新累積總額與預算
+            fetch(`${GAS_URL}?action=getData`)
+                .then(res => res.json())
+                .then(data => {
+                    // 計算當月累積金額
+                    let total = data.records.reduce((sum, r) => sum + r.amount, 0);
+                    document.getElementById('month-total').innerText = total.toLocaleString();
+                    
+                    // 同步雲端預算到輸入框與快取
+                    fields.forEach(f => {
+                        if(data.budgets[f]) {
+                            document.getElementById('bg-'+f).value = data.budgets[f];
+                            localStorage.setItem('budget_'+f, data.budgets[f]);
+                        }
+                    });
+                });
+        });
+
+        function selectCat(cat) {
+            chosenCategory = cat;
+            document.getElementById('selected-cat-text').innerText = cat;
+        }
+
+        function pressKey(key) {
+            if (key === 'C') {
+                currentAmount = currentAmount.length > 1 ? currentAmount.slice(0, -1) : "0";
             } else {
-                cMatch = i.category === cFilter;
+                currentAmount = currentAmount === "0" ? key : currentAmount + key;
             }
-            return monthMatch && pMatch && cMatch;
-        });
-
-        if (filtered.length === 0) {
-            listContainer.innerHTML = '<div style="text-align:center; padding:30px; color:#999;">這個月份空空如也唷 🐾</div>';
-            return;
+            document.getElementById('tx-amount').innerText = currentAmount;
         }
 
-        listContainer.innerHTML = filtered.map(i => {
-            const isElf = i.payer.trim() === '小精靈';
-            const borderColor = isElf ? '#ff6fa9' : '#4a90e2';
-            
-            let reimburseTag = '';
-            let actionButton = '';
-            if (i.is_reimburse) {
-                if (i.is_settled) {
-                    reimburseTag = '<span class="tag" style="background:#2ecc71;">已結清 ✓</span>';
-                } else {
-                    reimburseTag = '<span class="tag tag-reim">待請款</span>';
-                    const safeTitle = i.title.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-                    const safePayer = i.payer.trim().replace(/'/g, "\\'");
-                    actionButton = `<br><button class="settle-btn" onclick="handleSettle('${i.id}', '${safeTitle}', '${safePayer}', ${i.amount})">銷帳 🛠️</button>`;
-                }
-            }
-
-            return `
-            <div class="record-item" style="border-left-color: ${borderColor}">
-                <div style="flex:1; padding-right: 10px;">
-                    <div style="margin-bottom: 6px;">
-                        <span class="tag" style="background:${borderColor}">${i.payer}</span>
-                        <span class="tag tag-cat">${i.category}</span>
-                        <span class="tag tag-need">${i.need_type || '需要'}</span>
-                        ${reimburseTag}
-                    </div>
-                    <div style="font-weight:900; font-size:16px; word-break:break-all;">${i.title}</div>
-                    <div style="font-size:11px; color:#999; margin-top:3px;">${new Date(i.created_at).toLocaleDateString()}</div>
-                    ${actionButton}
-                </div>
-                <div style="text-align:right; font-size:18px; font-weight:900; color:${i.amount < 0 ? '#2ecc71' : '#df4d8f'}; flex-shrink:0;">
-                    $${Math.round(i.amount).toLocaleString()}
-                </div>
-            </div>`;
-        }).join('');
-    }
-
-    async function handleSettle(id, title, originalPayer, amount) {
-        if (!confirm(`確定要將「${title}」結清嗎？\n這筆款項將會從小精靈與西瓜的待請款中移除，並直接轉換為對方的日常開銷唷！`)) return;
-        try {
-            const oppositePayer = (originalPayer === "小精靈") ? "西瓜" : "小精靈";
-            
-            const { error: updateError } = await db.from('expenses')
-                .update({ 
-                    payer: oppositePayer,
-                    is_reimburse: false,
-                    is_settled: false
-                })
-                .eq('id', id);
-                
-            if (updateError) throw updateError;
-
-            alert("結清並身分轉移成功！帳目已歸位 🎉");
-            await refresh();
-        } catch (err) {
-            alert("結清失敗：" + err.message);
+        // 修改預算自動存本機與雲端
+        function updateBudget(cat, val) {
+            localStorage.setItem('budget_' + cat, val);
+            fetch(`${GAS_URL}?action=updateBudget&category=${cat}&amount=${val}`);
         }
-    }
 
-    async function handleAddRecord() {
-        const btn = document.getElementById('addBtn');
-        const amtVal = document.getElementById('amount').value;
-        if (!amtVal || btn.disabled) return;
-        btn.disabled = true; btn.innerText = "正在存入...";
-        try {
-            const amount = parseFloat(amtVal);
-            const title = document.getElementById('title').value || "日常開銷";
-            const payer = currentPayer;
-            const category = document.getElementById('category').value;
-            const needType = currentNeedType;
-            const isReimburse = document.getElementById('is_reimburse').checked;
-            const customDate = document.getElementById('custom-date').value;
-            const finalDate = `${customDate}T${new Date().toTimeString().split(' ')[0]}.000Z`;
+        // 送出記帳明細到 Google
+        function submitRecord() {
+            if (!chosenCategory) { alert("請先選擇一個可愛的分類唷！"); return; }
+            if (currentAmount === "0") { alert("請輸入金額！"); return; }
 
-            const { error } = await db.from('expenses').insert([{
-                title, amount, payer, category, 
-                need_type: needType, is_reimburse: isReimburse, is_settled: false, created_at: finalDate
-            }]);
-            if (error) throw error;
-            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+            const payload = {
+                date: document.getElementById('tx-date').value,
+                category: chosenCategory,
+                item: document.getElementById('tx-item').value,
+                amount: currentAmount
+            };
 
-            if (isReimburse || category === "罰款") {
-                let msg = `\n🔔 新開銷回報！\n項目：${title}\n金額：$${amount}\n付款人：${payer}\n分類：${category}`;
-                if (isReimburse) msg += `\n⚠️ 【這是待請款】`;
-                if (category === "罰款") msg += `\n👊 罰單已開，記得繳費！`;
-                fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ message: msg }) });
-            }
-            alert(category === "罰款" ? "👊 記下罰款了！" : "✅ 存好囉！");
-            document.getElementById('amount').value = ""; document.getElementById('title').value = "";
-            document.getElementById('is_reimburse').checked = false;
-            await refresh();
-        } catch (err) { alert(err.message); }
-        finally { btn.disabled = false; btn.innerText = "✨ 存入本本 ✨"; }
-    }
-
-    async function refresh() {
-        const startVal = document.getElementById('start-date').value;
-        const endVal = document.getElementById('end-date').value;
-        if(!startVal || !endVal) return;
-        
-        const startLimit = new Date(startVal); startLimit.setHours(0,0,0,0);
-        const endLimit = new Date(endVal); endLimit.setHours(23,59,59,999);
-        
-        const { data, error } = await db.from('expenses').select('*').order('created_at', { ascending: false });
-        if (error) {
-            document.getElementById('stats-board').innerText = "數據讀取失敗...";
-            return;
+            fetch(GAS_URL, {
+                method: "POST",
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(res => {
+                alert(res.message);
+                location.reload(); // 重新整理更新當月總額
+            });
         }
-        
-        localData = data || [];
-        let s = { elf: 0, water: 0, total: 0, elf_r: 0, water_r: 0 };
-        
-        localData.forEach(i => {
-            const d = new Date(i.created_at);
-            const amt = Number(i.amount);
-            
-            if (d >= startLimit && d <= endLimit) {
-                if (i.payer.trim() === "小精靈") s.elf += amt; else s.water += amt;
-                s.total += amt;
-            }
-            
-            if (i.is_reimburse && !i.is_settled) {
-                if (i.payer.trim() === "小精靈") s.elf_r += amt;
-                else s.water_r += amt;
-            }
-        });
-
-        document.getElementById('stats-board').innerHTML = `
-            <div class="total-amount">$${Math.round(s.total).toLocaleString()}</div>
-            <div style="display:flex; justify-content: space-around; font-weight:800; font-size:15px; margin: 10px 0;">
-                <span style="color:#ff6fa9">🧚 $${Math.round(s.elf).toLocaleString()}</span><span style="color:#4a90e2">🍉 $${Math.round(s.water).toLocaleString()}</span>
-            </div>
-            <div style="background: rgba(253, 245, 255, 0.8); border: 2.5px solid #e0c3fc; border-radius: 22px; padding: 18px; display:flex; justify-content: space-between; text-align:center;">
-                <div style="flex:1;"><b style="color:#df4d8f">🧚 待請款</b><br><span style="font-size:22px; font-weight:900; color:var(--primary)">$${Math.round(s.elf_r).toLocaleString()}</span></div>
-                <div style="flex:1;"><b style="color:#4a90e2">🍉 待請款</b><br><span style="font-size:22px; font-weight:900; color:#4a90e2">$${Math.round(s.water_r).toLocaleString()}</span></div>
-            </div>
-        `;
-        
-        renderList();
-    }
-
-    window.onload = async () => {
-        initHearts();
-        
-        autoDetectPaydayRange();
-        
-        const d = new Date();
-        // ✨ 明細月份選擇器：預設填入當前的年份與月份 (YYYY-MM)
-        document.getElementById('filter-month').value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        document.getElementById('custom-date').value = d.toISOString().split('T')[0];
-        await refresh();
-    };
-</script>
+    </script>
 </body>
 </html>
