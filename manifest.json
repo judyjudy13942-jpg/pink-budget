@@ -1,0 +1,16 @@
+{
+  "short_name": "粉紅記帳",
+  "name": "夢幻泡泡粉紅記帳 App",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#FFE4E1",
+  "theme_color": "#FFB6C1",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
