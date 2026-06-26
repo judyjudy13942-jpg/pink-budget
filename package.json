@@ -37,7 +37,7 @@
     </div>
 
     <script>
-        const GAS_URL = "https://script.google.com/macros/s/你的網址密鑰/exec"; 
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbysT5brkEOmCNvDw_LWeesJlDLr-W_jH9DzK2itaa_6oeMdq27w0_rHvUfD_t0QTyW8/exec"; 
         let allRecords = [];
 
         window.addEventListener('load', () => {
