@@ -9,7 +9,7 @@
 
 body {
     /* 夢幻粉紅柔和漸層背景 */
-    background: linear-gradient(135deg, #FFE4E1 0%, #FFB6C1 50%, #FFC0CB 100%);
+    background: linear-gradient(135deg, #FFE4E1 0%, #FFB6C1 50%, #FFC0CB 100%);1
     background-attachment: fixed;
     height: 100vh;
     width: 100vw;
