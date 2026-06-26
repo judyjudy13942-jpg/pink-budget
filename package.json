@@ -1,15 +1,92 @@
-{
-  "name": "pink-budget-bot",
-  "version": "1.0.0",
-  "description": "LINE 記帳機器人",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
-  },
-  "dependencies": {
-    "@line/bot-sdk": "^7.5.2",
-    "express": "^4.18.2",
-    "dotenv": "^16.0.3",
-    "mongodb": "^6.0.0"
-  }
-}
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>花費明細</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-shell">
+        <div class="glass-panel text-center">
+            <h2 class="panel-title">🔍 篩選花費總計</h2>
+            <div class="total-amount" style="color: #ff1493;">NT$ <span id="filter-total">0</span></div>
+        </div>
+
+        <div class="glass-panel filter-box">
+            <input type="date" id="filter-date" onchange="applyFilter()">
+            <select id="filter-cat" onchange="applyFilter()">
+                <option value="">所有分類</option>
+                <option value="主食">🍱 主食</option><option value="點心">🍰 點心</option>
+                <option value="住宿">🎀 住宿</option><option value="交通">🚗 交通</option>
+                <option value="購物">🛍️ 購物</option><option value="治裝">👗 治裝</option>
+                <option value="電話及會員">📱 電話會員</option><option value="醫療">🏥 醫療</option>
+                <option value="保養美體">💅 保養美體</option><option value="儲值及娛樂">🎮 娛樂儲值</option>
+                <option value="狗勾">🐶 狗勾</option><option value="其他">✨ 其他</option>
+            </select>
+        </div>
+
+        <div class="scrollable-content" id="records-list">
+            <p style="text-align:center; color:#fff;">正在從 Google 讀取明細中...🌸</p>
+        </div>
+
+        <div class="nav-bar">
+            <a href="index.html" class="nav-item">記帳首頁</a>
+            <a href="details.html" class="nav-item active">明細歷史</a>
+        </div>
+    </div>
+
+    <script>
+        const GAS_URL = "https://script.google.com/macros/s/你的網址密鑰/exec"; 
+        let allRecords = [];
+
+        window.addEventListener('load', () => {
+            fetch(`${GAS_URL}?action=getData`)
+                .then(res => res.json())
+                .then(data => {
+                    allRecords = data.records;
+                    applyFilter(); // 預設顯示全部或特定規則
+                });
+        });
+
+        function applyFilter() {
+            const dateVal = document.getElementById('filter-date').value;
+            const catVal = document.getElementById('filter-cat').value;
+            const container = document.getElementById('records-list');
+            container.innerHTML = "";
+
+            let filtered = allRecords.filter(r => {
+                const matchDate = dateVal ? r.date === dateVal : true;
+                const matchCat = catVal ? r.category === catVal : true;
+                return matchDate && matchCat;
+            });
+
+            // 計算篩選總額
+            let sum = filtered.reduce((total, r) => total + r.amount, 0);
+            document.getElementById('filter-total').innerText = sum.toLocaleString();
+
+            if(filtered.length === 0) {
+                container.innerHTML = `<p style="text-align:center; color:#fff; padding:20px;">沒有找到相關帳目唷 ✨</p>`;
+                return;
+            }
+
+            // 渲染列表 (採用漂亮的液態小字卡)
+            filtered.forEach(r => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'record-item glass-panel';
+                itemDiv.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; width:100%;">
+                        <div>
+                            <span style="font-weight:bold; color:#d2691e;">[${r.category}]</span> 
+                            <span style="color:#555;">${r.item || '無項目描述'}</span>
+                            <div style="font-size:12px; color:#888; margin-top:4px;">${r.date}</div>
+                        </div>
+                        <div style="font-weight:bold; color:#ff1493; font-size:18px;">$${r.amount}</div>
+                    </div>
+                `;
+                container.appendChild(itemDiv);
+            });
+        }
+    </script>
+</body>
+</html>
