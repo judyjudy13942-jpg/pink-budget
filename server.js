@@ -1,185 +1,77 @@
-const express = require('express');
-const line = require('@line/bot-sdk');
-const { MongoClient } = require('mongodb');
-require('dotenv').config();
-
-// --- 已幫你修改好你們在 LINE 上的名稱 ---
-const WIFE_LINE_NAME = '庭庭庭';  // 👈 妳的 LINE 名字
-const HUSBAND_LINE_NAME = '🍉';   // 👈 對方的西瓜符號
-// -------------------------------------
-
-// LINE 機器人基本設定
-const lineConfig = {
-  channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN,
-  channelSecret: process.env.CHANNEL_SECRET
-};
-
-// 修正後的 LINE Client 初始化寫法
-const lineClient = new line.Client(lineConfig);
-
-// MongoDB 連線設定
-const mongoUri = process.env.MONGODB_URI;
-const dbName = 'pink-budget-db';
-let db, billingCollection;
-
-// 初始化連線到 MongoDB
-async function connectDB() {
-  try {
-    const client = new MongoClient(mongoUri);
-    await client.connect();
-    db = client.db(dbName);
-    billingCollection = db.collection('records');
-    console.log('✅ 成功連線至 MongoDB 資料庫！');
-  } catch (error) {
-    console.error('❌ MongoDB 連線失敗:', error);
-  }
-}
-connectDB();
-
-const app = express();
-
-// LINE Webhook 路由
-app.post('/webhook', line.middleware(lineConfig), async (req, res) => {
-  try {
-    const events = req.body.events;
-    for (let event of events) {
-      if (event.type === 'message' && event.message.type === 'text') {
-        await handleTextByBot(event);
-      }
-    }
-    res.status(200).end();
-  } catch (err) {
-    console.error('Webhook 處理時發生錯誤:', err);
-    res.status(500).end();
-  }
-});
-
-// 核心記帳邏輯
-async function handleTextByBot(event) {
-  const replyToken = event.replyToken;
-  const userText = event.message.text.trim();
-  
-  // 1. 取得發送訊息的人是誰
-  let senderName = '未知使用者';
-  try {
-    if (event.source.userId) {
-      const profile = await lineClient.getProfile(event.source.userId);
-      senderName = profile.displayName ? profile.displayName.trim() : '未知使用者';
-    }
-  } catch (e) {
-    console.error('無法取得用戶 Profile:', e);
-  }
-
-  // 判斷記帳人是老公還是老婆
-  let userRole = '';
-  if (senderName === WIFE_LINE_NAME) userRole = 'wife';
-  if (senderName === HUSBAND_LINE_NAME) userRole = 'husband';
-
-  // 2. 指令：設定本期起始日 (格式: 設定本期 2026/06/10)
-  if (userText.startsWith('設定本期')) {
-    const dateStr = userText.replace('設定本期', '').trim();
-    const dateRegex = /^\d{4}\/\d{2}\/\d{2}$/;
-    
-    if (!dateRegex.test(dateStr)) {
-      return lineClient.replyMessage(replyToken, { type: 'text', text: '❌ 格式錯誤，請輸入例如：設定本期 2026/06/10' });
-    }
-
-    // 寫入或更新資料庫中的本期起始日
-    await db.collection('config').updateOne(
-      { key: 'period_start' },
-      { $set: { value: dateStr } },
-      { upsert: true }
-    );
-
-    return lineClient.replyMessage(replyToken, { type: 'text', text: `📅 本期起始日已成功設定為：${dateStr}` });
-  }
-
-  // 3. 指令：查帳
-  if (userText === '查帳') {
-    // 取得起始日
-    const config = await db.collection('config').findOne({ key: 'period_start' });
-    if (!config) {
-      return lineClient.replyMessage(replyToken, { type: 'text', text: '💡 尚未設定本期起始日，請先輸入「設定本期 YYYY/MM/DD」' });
-    }
-    const startDate = config.value;
-
-    // 撈出該起始日之後的所有記帳紀錄
-    const records = await billingCollection.find({ date: { $gte: startDate } }).toArray();
-
-    let wifeTotal = 0;
-    let husbandTotal = 0;
-    let detailText = '';
-
-    records.forEach(r => {
-      if (r.role === 'wife') {
-        wifeTotal += r.amount;
-        detailText += ` [${r.date}] 庭庭庭 支出 $${r.amount} (${r.note || '無備註'})\n`;
-      } else if (r.role === 'husband') {
-        husbandTotal += r.amount;
-        detailText += ` [${r.date}] 🍉 支出 $${r.amount} (${r.note || '無備註'})\n`;
-      }
-    });
-
-    const grandTotal = wifeTotal + husbandTotal;
-    const half = grandTotal / 2;
-    let settleText = '';
-
-    if (wifeTotal > half) {
-      settleText = `👉 🍉 需給庭庭庭 $${(wifeTotal - half).toFixed(0)} 元`;
-    } else if (husbandTotal > half) {
-      settleText = `👉 庭庭庭 需給 🍉 $${(husbandTotal - half).toFixed(0)} 元`;
-    } else {
-      settleText = `👉 雙方持平，不需結帳！`;
-    }
-
-    const replyMsg = `📊 【本期帳務統計】(自 ${startDate} 起)\n\n` +
-                     `👩 庭庭庭總支出: $${wifeTotal}\n` +
-                     `👨 🍉總支出: $${husbandTotal}\n` +
-                     `💰 總花費: $${grandTotal}\n` +
-                     `均分金額: $${half.toFixed(0)}\n` +
-                     `-----------------------\n` +
-                     `${settleText}\n\n` +
-                     `📝 帳務明細：\n${detailText || '目前暫無紀錄'}`;
-
-    return lineClient.replyMessage(replyToken, { type: 'text', text: replyMsg.trim() });
-  }
-
-  // 4. 自動記帳邏輯：判斷開頭是不是數字 (例如: 150 午餐)
-  const match = userText.match(/^(\d+)(.*)$/);
-  if (match) {
-    if (!userRole) {
-      return lineClient.replyMessage(replyToken, { 
-        type: 'text', 
-        text: `⚠️ 系統無法識別您的 LINE 名稱「${senderName}」，請確認是否與程式碼中的「庭庭庭」或「🍉」完全一致（包含空格、貼圖等）喔！` 
-      });
-    }
-
-    const amount = parseInt(match[1], 10);
-    const note = match[2].trim();
-    const today = new Date().toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/-/g, '/');
-
-    // 儲存到 MongoDB
-    const newRecord = {
-      amount: amount,
-      note: note || '未分類',
-      role: userRole,
-      sender: senderName,
-      date: today,
-      createdAt: new Date()
-    };
-
-    await billingCollection.insertOne(newRecord);
-
-    const roleName = userRole === 'wife' ? '👩 庭庭庭' : '👨 🍉';
-    return lineClient.replyMessage(replyToken, { 
-      type: 'text', 
-      text: `✅ ${roleName} 已成功記帳！\n💰 金額: $${amount}\n📝 備註: ${note || '無'}\n📅 日期: ${today}` 
-    });
-  }
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
 }
 
-// 監聽 Port
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`🚀 MongoDB 智慧記帳系統已啟動 Port ${PORT}`);
-});
+body {
+    background: linear-gradient(135deg, #FFE4E1 0%, #FFB6C1 50%, #FFC0CB 100%);
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden; /* 徹底封鎖全域捲動 */
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    display: flex;
+    justify-content: center;
+}
+
+.app-shell {
+    width: 100%;
+    max-width: 430px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 16px 16px 80px 16px; /* 保留底部導覽列空間 */
+    position: relative;
+}
+
+/* 液態玻璃擬態卡片 */
+.glass-panel {
+    background: rgba(255, 255, 255, 0.35);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 24px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 8px 32px 0 rgba(255, 182, 193, 0.3);
+}
+
+.text-center { text-align: center; }
+.panel-title { font-size: 14px; color: #666; font-weight: 600; margin-bottom: 4px; }
+.total-amount { font-size: 32px; font-weight: 800; color: #fff; text-shadow: 1px 1px 5px rgba(219,112,147,0.5); }
+
+/* 預算區域格子 */
+.budget-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 8px; }
+.budget-item { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #444; }
+.budget-item input { width: 75px; background: rgba(255,255,255,0.5); border: none; border-radius: 8px; padding: 4px; text-align: right; font-weight: bold; color: #ff1493; }
+
+/* 記帳板塊 */
+.keep-panel { flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+.input-row { display: flex; gap: 8px; }
+.input-row input { flex: 1; border: none; padding: 8px; border-radius: 12px; background: rgba(255,255,255,0.5); font-size: 14px; }
+
+/* 12分類滾動區 */
+.category-container { display: flex; gap: 8px; overflow-x: auto; padding: 8px 0; margin: 4px 0; }
+.category-container::-webkit-scrollbar { display: none; }
+.cat-btn { shrink: 0; flex-shrink: 0; background: rgba(255,255,255,0.6); padding: 6px 12px; border-radius: 20px; font-size: 13px; cursor: pointer; border: 1px solid rgba(255,182,193,0.5); }
+
+.amount-display { font-size: 14px; font-weight: bold; color: #555; text-align: right; padding: 4px; }
+
+/* 虛擬鍵盤 */
+.keyboard { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 4px; }
+.key { background: rgba(255, 255, 255, 0.5); padding: 12px; text-align: center; border-radius: 12px; font-weight: bold; color: #555; cursor: pointer; font-size: 16px; }
+.key:active { background: rgba(255, 192, 203, 0.6); }
+.backspace { color: #ff69b4; }
+.submit-btn { background: linear-gradient(135deg, #ffb6c1, #ff69b4); color: white; grid-column: span 1; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+
+/* 明細頁專用滾動 */
+.scrollable-content { flex: 1; overflow-y: auto; padding-bottom: 20px; }
+.record-item { margin-bottom: 8px; padding: 12px; border-radius: 16px; background: rgba(255,255,255,0.5); }
+.filter-box { display: flex; gap: 8px; }
+.filter-box input, .filter-box select { flex: 1; padding: 8px; border: none; border-radius: 12px; background: rgba(255,255,255,0.5); }
+
+/* 底部導覽列 */
+.nav-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 60px; background: rgba(255,255,255,0.4); backdrop-filter: blur(10px); display: flex; border-top: 1px solid rgba(255,255,255,0.4); }
+.nav-item { flex: 1; display: flex; align-items: center; justify-content: center; text-decoration: none; color: #888; font-size: 14px; font-weight: bold; }
+.nav-item.active { color: #ff1493; }
